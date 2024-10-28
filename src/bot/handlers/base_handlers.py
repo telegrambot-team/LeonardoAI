@@ -83,7 +83,7 @@ async def main_menu_handler(callback: types.CallbackQuery, callback_data: MainMe
 async def analyze_list_handler(callback: types.CallbackQuery, callback_data: SurgeryMenuOption):
     match callback_data.action:
         case SurgeryMenuBtns.ANALYZE_LIST:
-            fname = "/Users/nikolaybolg/PycharmProjects/leonardo_bot/data/obchaia anestezia analizi.pdf"
+            fname = "data/obchaia anestezia analizi.pdf"
             await callback.message.answer_document(FSInputFile(path=fname))
         case SurgeryMenuBtns.MEDICINE_AFTER:
             await callback.message.edit_text("Лекарства после операции", reply_markup=after_surgery_kbd)
