@@ -17,6 +17,7 @@ from bot.middlewares.session_middleware import DBSessionMiddleware
 from bot.middlewares.updates_dumper_middleware import UpdatesDumperMiddleware
 from config import get_logging_config, settings
 from database.database_connector import get_db
+from database.tables_helper import create_or_drop_db
 
 
 async def set_bot_commands(bot: Bot) -> None:
@@ -35,6 +36,8 @@ async def main():
     storage = MemoryStorage()
 
     db = get_db(settings)
+
+    await create_or_drop_db(db.engine)
 
     ai_client = AIClient(settings.OPENAI_API_KEY.get_secret_value(), settings.ASSISTANT_ID.get_secret_value())
 
