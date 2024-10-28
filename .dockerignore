@@ -3,6 +3,7 @@
 .gitignore
 .github
 
+**/*.egg-info
 # Docker
 .dockerignore
 
