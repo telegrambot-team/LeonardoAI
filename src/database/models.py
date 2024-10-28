@@ -18,6 +18,7 @@ class User(Base):
     telegram_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
     full_name: Mapped[str]
     username: Mapped[str | None] = mapped_column(String(32))
+    ai_thread_id: Mapped[str | None]
 
     def __str__(self):
         return f"User(full_name={self.full_name}, telegram_id={self.telegram_id}, username={self.username}"

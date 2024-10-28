@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     DBHOST: str = "localhost"
     DBPORT: int = 5432
     echo: bool = False
+    OPENAI_API_KEY: SecretStr
+    ASSISTANT_ID: SecretStr
 
     @property
     def postgres_db_url(self) -> str:
