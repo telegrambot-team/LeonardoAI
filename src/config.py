@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     echo: bool = False
     OPENAI_API_KEY: SecretStr
     ASSISTANT_ID: SecretStr
+    CHAT_LOG_ID: int
 
     @property
     def postgres_db_url(self) -> str:

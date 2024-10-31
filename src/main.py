@@ -41,7 +41,9 @@ async def main():
 
     ai_client = AIClient(settings.OPENAI_API_KEY.get_secret_value(), settings.ASSISTANT_ID.get_secret_value())
 
-    dispatcher = Dispatcher(storage=storage, events_isolation=SimpleEventIsolation(), ai_client=ai_client)
+    dispatcher = Dispatcher(
+        storage=storage, events_isolation=SimpleEventIsolation(), ai_client=ai_client, settings=settings
+    )
     db_session_middleware = DBSessionMiddleware(db)
     dispatcher.message.middleware(db_session_middleware)
     dispatcher.callback_query.middleware(db_session_middleware)

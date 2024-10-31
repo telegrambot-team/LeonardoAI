@@ -49,7 +49,7 @@ class AIMenuOption(CallbackData, prefix="ai_menu"):
 
 def _build_start_kbd():
     kb = InlineKeyboardBuilder()
-    kb.button(text="AI Leonardo", callback_data=MainMenuOption(action=MainMenuBtns.AI_LEONARDO))
+    kb.button(text="Разговор с моей цифровой копией", callback_data=MainMenuOption(action=MainMenuBtns.AI_LEONARDO))
     kb.button(text="Перед операцией", callback_data=MainMenuOption(action=MainMenuBtns.BEFORE_SURGERY))
     kb.button(text="Задать вопрос доктору", callback_data=MainMenuOption(action=MainMenuBtns.ASK_QUESTION))
     kb.button(

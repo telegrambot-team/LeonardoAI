@@ -8,6 +8,9 @@ class AIClient:
         self.client = AsyncOpenAI(api_key=token)
         self.assistant_id = assistant_id
 
+    async def delete_thread(self, thread_id: str):
+        await self.client.beta.threads.delete(thread_id)
+
     async def new_thread(self) -> str:
         thread = await self.client.beta.threads.create()
         logging.debug(f"Created new thread {thread}")
@@ -16,8 +19,10 @@ class AIClient:
     async def get_response(self, ai_thread_id: str, text: str):
         await self.client.beta.threads.messages.create(thread_id=ai_thread_id, role="user", content=text)
         async with self.client.beta.threads.runs.stream(
-            thread_id=ai_thread_id, assistant_id=self.assistant_id
+            thread_id=ai_thread_id, assistant_id=self.assistant_id, max_completion_tokens=1000, max_prompt_tokens=500
         ) as stream:
             async for response in stream:
+                logging.debug(f"{ai_thread_id=}|{response.event=}")
                 if response.event == "thread.message.completed":
                     return response.data.content[0].text.value
+            return None

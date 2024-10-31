@@ -6,11 +6,11 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import FSInputFile
+from aiogram.types import FSInputFile, InputMediaPhoto
 from aiogram.utils.chat_action import ChatActionSender
 
 from ai_client import AIClient
-from bot.handlers.texts import TEXTS
+from bot.handlers.consts import TEXTS, IMGS
 from bot.keyboards import (
     start_kbd,
     MainMenuOption,
@@ -36,7 +36,7 @@ class StatesBot(StatesGroup):
 
 def get_start_text(full_name: str):
     return (
-        aiogram.html.bold(f"Leonardo AI приветствует вас, {full_name}!\n\n")
+        aiogram.html.bold(f"Виртуальный доктор приветствует вас, {full_name}!\n\n")
         + "Выполните команду /start чтобы в любой момент вернутся в главное меню."
     )
 
@@ -51,8 +51,7 @@ async def start_message(message: types.Message, state: FSMContext) -> None:
 async def ai_leonardo_handler(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(StatesBot.IN_AI_DIALOG)
     await callback.message.edit_text(
-        "Напишите своё сообщение в чат чтобы продолжить диалог с Leonardo AI,"
-        " или начните новый диалог нажав на кнопку ниже",
+        "Напишите своё сообщение в чат чтобы продолжить диалог," " или начните новый диалог нажав на кнопку ниже",
         reply_markup=ai_kbd,
     )
 
@@ -65,25 +64,28 @@ async def main_menu_handler(callback: types.CallbackQuery, callback_data: MainMe
         case MainMenuBtns.ASK_QUESTION:
             await callback.message.answer(
                 "Вы можете задать вопрос написав мне в телеграме: @StaisupovValeri\n\n"
-                "Или по телефону: +7-931-300-99-33"
+                "Или в вотсапе : https://wa.me/79313009933"
             )
         case MainMenuBtns.SCHEDULE_SURGERY:
-            link = (
-                f"https://wa.me/79213713864?{urlencode({"text": "Здравствуйте! Я хочу записаться на консультацию."})}"
-            )
+            link = f"https://wa.me/79213713864?{urlencode({"text":
+                                                            "Здравствуйте! Я хочу записаться на консультацию к Стайсупову Валерию Юрьевичу."})}"
             escaped_link = aiogram.html.link("ссылке", link)
             await callback.message.answer(f"Вы можете записаться на консультацию в WhatsApp по {escaped_link}")
         case MainMenuBtns.SCHEDULE_CONSULTATION:
-            link = f"https://wa.me/79213713864?{urlencode({"text": "Здравствуйте! Я хочу записаться на операцию."})}"
+            link = f"https://wa.me/79213713864?{urlencode({"text": "Здравствуйте! Я хочу записаться на операцию к Стайсупову Валерию Юрьевичу."})}"
             escaped_link = aiogram.html.link("ссылке", link)
-            await callback.message.answer(f"Вы можете записаться на операцию в WhatsApp по {escaped_link}")
+            await callback.message.answer(
+                f"Вы можете записаться на операцию в WhatsApp по {escaped_link}\n\n"
+                f""
+                f"Или по телефону: +7-812-403-02-01"
+            )
 
 
 @router.callback_query(SurgeryMenuOption.filter())
 async def analyze_list_handler(callback: types.CallbackQuery, callback_data: SurgeryMenuOption):
     match callback_data.action:
         case SurgeryMenuBtns.ANALYZE_LIST:
-            fname = "data/obchaia anestezia analizi.pdf"
+            fname = "data/Список Анализов.pdf"
             await callback.message.answer_document(FSInputFile(path=fname))
         case SurgeryMenuBtns.MEDICINE_AFTER:
             await callback.message.edit_text("Лекарства после операции", reply_markup=after_surgery_kbd)
@@ -94,11 +96,18 @@ async def analyze_list_handler(callback: types.CallbackQuery, callback_data: Sur
 @router.callback_query(AfterSurgeryMenuOption.filter())
 async def analyze_list_handler(callback: types.CallbackQuery, callback_data: AfterSurgeryMenuOption):
     if callback_data.action == AfterSurgeryMenuBtns.BACK:
-        await callback.message.edit_text("Рекомендации перед и после операции", reply_markup=before_surgery_kbd)
+        await callback.message.answer("Рекомендации перед и после операции", reply_markup=before_surgery_kbd)
+        await callback.message.delete()
         return
 
     try:
-        await callback.message.edit_text(TEXTS[callback_data.action], reply_markup=after_surgery_kbd)
+        photo = InputMediaPhoto(media=IMGS[callback_data.action], caption=TEXTS[callback_data.action])
+        try:
+            await callback.message.edit_media(photo, reply_markup=after_surgery_kbd)
+        except TelegramBadRequest:
+            await callback.message.answer_photo(
+                IMGS[callback_data.action], caption=TEXTS[callback_data.action], reply_markup=after_surgery_kbd
+            )
     except TelegramBadRequest:
         pass
 
@@ -111,15 +120,23 @@ async def analyze_list_handler(
         await state.set_state()
         await callback.message.edit_text(get_start_text(callback.from_user.full_name), reply_markup=start_kbd)
         return
+    if user.ai_thread_id is not None:
+        await ai_client.delete_thread(user.ai_thread_id)
+
     user.ai_thread_id = await ai_client.new_thread()
     await callback.message.answer("Чем я могу помочь?")
 
 
 @router.message(StatesBot.IN_AI_DIALOG)
-async def ai_leonardo_handler(message: types.Message, user: User, ai_client: AIClient):
+async def ai_leonardo_handler(message: types.Message, user: User, ai_client: AIClient, settings):
     if user.ai_thread_id is None:
         user.ai_thread_id = await ai_client.new_thread()
 
+    await message.forward(settings.CHAT_LOG_ID)
     async with ChatActionSender.typing(bot=message.bot, chat_id=message.chat.id):
         response = await ai_client.get_response(user.ai_thread_id, message.text)
-        await message.answer(response)
+        if response is None:
+            await message.answer("Извините, я не могу ответить на ваш вопрос")
+            return
+        msg_answer = await message.answer(response)
+        await msg_answer.forward(settings.CHAT_LOG_ID)
