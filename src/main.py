@@ -15,8 +15,8 @@ from bot.internal.notify_admin import on_shutdown_notify, on_startup_notify
 from bot.middlewares.auth_middleware import AuthMiddleware
 from bot.middlewares.session_middleware import DBSessionMiddleware
 from bot.middlewares.updates_dumper_middleware import UpdatesDumperMiddleware
-from config import get_logging_config, settings
-from database.database_connector import get_db
+from config import get_logging_config, Settings
+from database.database_connector import get_db, DatabaseConnector
 from database.tables_helper import create_or_drop_db
 
 
@@ -31,18 +31,21 @@ async def main():
     logging_config = get_logging_config(__name__)
     logging.config.dictConfig(logging_config)
 
+    settings = Settings()
     bot = Bot(token=settings.BOT_TOKEN.get_secret_value(), default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     logging.info("bot started")
-    storage = MemoryStorage()
 
     db = get_db(settings)
-
     await create_or_drop_db(db.engine)
 
     ai_client = AIClient(settings.OPENAI_API_KEY.get_secret_value(), settings.ASSISTANT_ID.get_secret_value())
+    dispatcher = create_dispatcher(settings, db, ai_client)
+    await dispatcher.start_polling(bot)
 
+
+def create_dispatcher(settings: Settings, db: DatabaseConnector ,ai_client) -> Dispatcher:
     dispatcher = Dispatcher(
-        storage=storage, events_isolation=SimpleEventIsolation(), ai_client=ai_client, settings=settings
+        storage=MemoryStorage(), events_isolation=SimpleEventIsolation(), ai_client=ai_client, settings=settings
     )
     db_session_middleware = DBSessionMiddleware(db)
     dispatcher.message.middleware(db_session_middleware)
@@ -54,7 +57,7 @@ async def main():
     dispatcher.startup.register(on_startup_notify)
     dispatcher.shutdown.register(on_shutdown_notify)
     dispatcher.include_routers(base_router, errors_router)
-    await dispatcher.start_polling(bot)
+    return dispatcher
 
 
 def run_main():
