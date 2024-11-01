@@ -6,7 +6,7 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import FSInputFile, InputMediaPhoto
+from aiogram.types import FSInputFile, InputMediaPhoto, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.chat_action import ChatActionSender
 
 from ai_client import AIClient
@@ -58,30 +58,38 @@ async def ai_leonardo_handler(callback: types.CallbackQuery, state: FSMContext):
 
 @router.callback_query(MainMenuOption.filter())
 async def main_menu_handler(callback: types.CallbackQuery, callback_data: MainMenuOption):
+    back_kbd = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Назад", callback_data=SurgeryMenuOption(action=SurgeryMenuBtns.BACK).pack())]
+        ]
+    )
     match callback_data.action:
         case MainMenuBtns.BEFORE_SURGERY:
             await callback.message.edit_text("Рекомендации перед и после операции", reply_markup=before_surgery_kbd)
         case MainMenuBtns.ASK_QUESTION:
-            await callback.message.answer(
+            await callback.message.edit_text(
                 "Вы можете задать вопрос написав мне в телеграме: @StaisupovValeri\n\n"
-                "Или в вотсапе : https://wa.me/79313009933"
+                "Или в вотсапе : https://wa.me/79313009933",
+                reply_markup=back_kbd,
             )
         case MainMenuBtns.SCHEDULE_CONSULTATION:
             link = f"https://wa.me/79213713864?{urlencode({"text":
                                                             "Здравствуйте! Я хочу записаться на консультацию к Стайсупову Валерию Юрьевичу."})}"
             escaped_link = aiogram.html.link("ссылке", link)
-            await callback.message.answer(
+            await callback.message.edit_text(
                 f"Вы можете записаться на консультацию в WhatsApp по {escaped_link}\n\n"
                 f""
-                f"Или по телефону: +7-812-403-02-01"
+                f"Или по телефону: +7-812-403-02-01",
+                reply_markup=back_kbd,
             )
         case MainMenuBtns.SCHEDULE_SURGERY:
             link = f"https://wa.me/79213713864?{urlencode({"text": "Здравствуйте! Я хочу записаться на операцию к Стайсупову Валерию Юрьевичу."})}"
             escaped_link = aiogram.html.link("ссылке", link)
-            await callback.message.answer(
+            await callback.message.edit_text(
                 f"Вы можете записаться на операцию в WhatsApp по {escaped_link}\n\n"
                 f""
-                f"Или по телефону: +7-812-403-02-01"
+                f"Или по телефону: +7-812-403-02-01",
+                reply_markup=back_kbd,
             )
 
 
