@@ -66,12 +66,16 @@ async def main_menu_handler(callback: types.CallbackQuery, callback_data: MainMe
                 "Вы можете задать вопрос написав мне в телеграме: @StaisupovValeri\n\n"
                 "Или в вотсапе : https://wa.me/79313009933"
             )
-        case MainMenuBtns.SCHEDULE_SURGERY:
+        case MainMenuBtns.SCHEDULE_CONSULTATION:
             link = f"https://wa.me/79213713864?{urlencode({"text":
                                                             "Здравствуйте! Я хочу записаться на консультацию к Стайсупову Валерию Юрьевичу."})}"
             escaped_link = aiogram.html.link("ссылке", link)
-            await callback.message.answer(f"Вы можете записаться на консультацию в WhatsApp по {escaped_link}")
-        case MainMenuBtns.SCHEDULE_CONSULTATION:
+            await callback.message.answer(
+                f"Вы можете записаться на консультацию в WhatsApp по {escaped_link}\n\n"
+                f""
+                f"Или по телефону: +7-812-403-02-01"
+            )
+        case MainMenuBtns.SCHEDULE_SURGERY:
             link = f"https://wa.me/79213713864?{urlencode({"text": "Здравствуйте! Я хочу записаться на операцию к Стайсупову Валерию Юрьевичу."})}"
             escaped_link = aiogram.html.link("ссылке", link)
             await callback.message.answer(
