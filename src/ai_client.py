@@ -19,7 +19,7 @@ class AIClient:
     async def get_response(self, ai_thread_id: str, text: str):
         await self.client.beta.threads.messages.create(thread_id=ai_thread_id, role="user", content=text)
         async with self.client.beta.threads.runs.stream(
-            thread_id=ai_thread_id, assistant_id=self.assistant_id, max_completion_tokens=1000, max_prompt_tokens=500
+            thread_id=ai_thread_id, assistant_id=self.assistant_id
         ) as stream:
             async for response in stream:
                 logging.debug(f"{ai_thread_id=}|{response.event=}")
