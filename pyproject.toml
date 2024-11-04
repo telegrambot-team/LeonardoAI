@@ -40,9 +40,9 @@ skip-string-normalization = true
 asyncio_mode = "auto"
 testpaths = "tests"
 filterwarnings = [
-    "ignore::DeprecationWarning",
+    "ignore::DeprecationWarning"
 ]
-
+asyncio_default_fixture_loop_scope="function"
 
 [tool.ruff]  # https://github.com/charliermarsh/ruff
 line-length = 120
