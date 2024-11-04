@@ -15,7 +15,7 @@ from bot.internal.notify_admin import on_shutdown_notify, on_startup_notify
 from bot.middlewares.auth_middleware import AuthMiddleware
 from bot.middlewares.session_middleware import DBSessionMiddleware
 from bot.middlewares.updates_dumper_middleware import UpdatesDumperMiddleware
-from config import get_logging_config, settings
+from config import get_logging_config, Settings
 from database.database_connector import get_db
 from database.tables_helper import create_or_drop_db
 
@@ -30,6 +30,8 @@ async def main():
     logs_directory.mkdir(parents=True, exist_ok=True)
     logging_config = get_logging_config(__name__)
     logging.config.dictConfig(logging_config)
+
+    settings = Settings()
 
     bot = Bot(token=settings.BOT_TOKEN.get_secret_value(), default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     logging.info("bot started")

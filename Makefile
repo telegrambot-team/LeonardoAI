@@ -146,3 +146,8 @@ reports-remove:
 .PHONY: cleanup
 cleanup: pycache-remove dsstore-remove mypycache-remove ruffcache-remove \
 ipynbcheckpoints-remove pytestcache-remove reports-remove
+
+
+.PHONY: prepare-backup-folder
+prepare-backup-folder:
+	mkdir -p pgbackups && sudo chown -R 999:999 pgbackups
