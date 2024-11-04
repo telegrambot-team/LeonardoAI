@@ -2,7 +2,7 @@ import asyncio
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from config import settings
+from config import Settings
 from database.database_connector import DatabaseConnector
 from database.models import Base
 
@@ -16,7 +16,7 @@ async def create_or_drop_db(engine: AsyncEngine, create: bool = True):
 
 
 def main():
-    db = DatabaseConnector(url=settings.postgres_db_url, echo=True)
+    db = DatabaseConnector(url=Settings().postgres_db_url, echo=True)
     asyncio.run(create_or_drop_db(db.engine))
 
 

@@ -5,7 +5,7 @@ import typing
 import aiogram
 from aiogram import Router, html
 
-from config import settings
+from config import Settings
 
 if typing.TYPE_CHECKING:
     from aiogram.types.error_event import ErrorEvent
@@ -14,7 +14,7 @@ router = Router()
 
 
 @router.errors()
-async def error_handler(error_event: "ErrorEvent", bot: aiogram.Bot):
+async def error_handler(error_event: "ErrorEvent", bot: aiogram.Bot, settings: Settings):
     exc_info = error_event.exception
     exc_traceback = "".join(traceback.format_exception(None, exc_info, exc_info.__traceback__))
 
