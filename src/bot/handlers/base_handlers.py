@@ -25,7 +25,6 @@ from bot.keyboards import (
     AIMenuOption,
     AIMenuBtns,
 )
-from database.models import User
 
 router = Router()
 
@@ -126,29 +125,36 @@ async def analyze_list_handler(callback: types.CallbackQuery, callback_data: Aft
 
 @router.callback_query(AIMenuOption.filter())
 async def analyze_list_handler(
-    callback: types.CallbackQuery, user: User, ai_client: AIClient, state: FSMContext, callback_data: AIMenuOption
+    callback: types.CallbackQuery, ai_client: AIClient, state: FSMContext, callback_data: AIMenuOption
 ):
     if callback_data.action == AIMenuBtns.BACK:
         await state.set_state()
         await callback.message.edit_text(get_start_text(callback.from_user.full_name), reply_markup=start_kbd)
         return
-    if user.ai_thread_id is not None:
-        await ai_client.delete_thread(user.ai_thread_id)
 
-    user.ai_thread_id = await ai_client.new_thread()
+    data = await state.get_data()
+
+    if "ai_thread_id" in data:
+        await ai_client.delete_thread(data["ai_thread_id"])
+
+    new_thread_id = await ai_client.new_thread()
+    await state.update_data(ai_thread_id=new_thread_id)
     await callback.message.answer("Чем я могу помочь?")
 
 
 @router.message(StatesBot.IN_AI_DIALOG)
-async def ai_leonardo_handler(message: types.Message, user: User, ai_client: AIClient, settings):
-    if user.ai_thread_id is None:
-        user.ai_thread_id = await ai_client.new_thread()
+async def ai_leonardo_handler(message: types.Message, ai_client: AIClient, settings, state: FSMContext):
+    data = await state.get_data()
+    new_thread_id = data.get("ai_thread_id", None)
+    if new_thread_id is None:
+        new_thread_id = await ai_client.new_thread()
+        await state.update_data(ai_thread_id=new_thread_id)
 
     await message.forward(settings.CHAT_LOG_ID)
     async with ChatActionSender.typing(bot=message.bot, chat_id=message.chat.id):
-        response = await ai_client.get_response(user.ai_thread_id, message.text)
+        response = await ai_client.get_response(new_thread_id, message.text)
         if response is None:
-            await message.answer("Извините, я не могу ответить на ваш вопрос")
+            await message.answer("Извините, я отвлекся, давайте начнём новый разговор 🙈")
             return
         msg_answer = await message.answer(response)
         await msg_answer.forward(settings.CHAT_LOG_ID)

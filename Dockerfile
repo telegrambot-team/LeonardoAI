@@ -1,9 +1,7 @@
 FROM python:3.12-slim
 
-RUN pip install uv
-
 WORKDIR /app
-COPY . /app
+COPY . .
+RUN --mount=from=ghcr.io/astral-sh/uv,source=/uv,target=/bin/uv uv pip install --system -Ue .
 
-RUN uv pip install --system -Ue .
 CMD ["bot-run"]

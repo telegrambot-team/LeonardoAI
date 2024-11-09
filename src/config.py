@@ -1,29 +1,17 @@
 from logging.handlers import RotatingFileHandler
 import sys
 
-from pydantic import SecretStr
+from pydantic import SecretStr, RedisDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     BOT_TOKEN: SecretStr
     ADMIN: int
-    DBPASS: SecretStr = "postgres"
-    DBNAME: str = "postgres"
-    DBUSER: str = "postgres"
-    DBHOST: str = "localhost"
-    DBPORT: int = 5432
-    echo: bool = False
     OPENAI_API_KEY: SecretStr
     ASSISTANT_ID: SecretStr
     CHAT_LOG_ID: int
-
-    @property
-    def postgres_db_url(self) -> str:
-        return (
-            f"postgresql+asyncpg://{self.DBUSER}:{self.DBPASS.get_secret_value()}"
-            f"@{self.DBHOST}:{self.DBPORT}/{self.DBNAME}"
-        )
+    REDIS_URL: RedisDsn
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)
 
