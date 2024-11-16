@@ -1,3 +1,4 @@
+import re
 from urllib.parse import urlencode
 
 import aiogram.utils.formatting
@@ -142,6 +143,10 @@ async def analyze_list_handler(
     await callback.message.answer("Чем я могу помочь?")
 
 
+def clean(response: str):
+    return re.sub(r"【.*?】", "", response)
+
+
 @router.message(StatesBot.IN_AI_DIALOG)
 async def ai_leonardo_handler(message: types.Message, ai_client: AIClient, settings, state: FSMContext):
     data = await state.get_data()
@@ -156,5 +161,6 @@ async def ai_leonardo_handler(message: types.Message, ai_client: AIClient, setti
         if response is None:
             await message.answer("Извините, я отвлекся, давайте начнём новый разговор 🙈")
             return
-        msg_answer = await message.answer(response)
+        cleaned_response = clean(response)
+        msg_answer = await message.answer(cleaned_response)
         await msg_answer.forward(settings.CHAT_LOG_ID)
