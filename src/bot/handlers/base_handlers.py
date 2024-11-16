@@ -50,7 +50,7 @@ async def start_message(message: types.Message, state: FSMContext) -> None:
 
 
 @router.callback_query(MainMenuOption.filter(F.action == MainMenuBtns.AI_LEONARDO))
-async def ai_leonardo_handler(callback: types.CallbackQuery, state: FSMContext):
+async def ai_leonardo_handler_start(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(StatesBot.IN_AI_DIALOG)
     await callback.message.edit_text(
         "Напишите своё сообщение в чат чтобы продолжить диалог," " или начните новый диалог нажав на кнопку ниже",
@@ -108,7 +108,7 @@ async def analyze_list_handler(callback: types.CallbackQuery, callback_data: Sur
 
 
 @router.callback_query(AfterSurgeryMenuOption.filter())
-async def analyze_list_handler(callback: types.CallbackQuery, callback_data: AfterSurgeryMenuOption):
+async def after_surgery_handler(callback: types.CallbackQuery, callback_data: AfterSurgeryMenuOption):
     if callback_data.action == AfterSurgeryMenuBtns.BACK:
         await callback.message.answer("Рекомендации перед и после операции", reply_markup=before_surgery_kbd)
         await callback.message.delete()
@@ -127,7 +127,7 @@ async def analyze_list_handler(callback: types.CallbackQuery, callback_data: Aft
 
 
 @router.callback_query(AIMenuOption.filter())
-async def analyze_list_handler(
+async def ai_menu_handler(
     callback: types.CallbackQuery, ai_client: AIClient, state: FSMContext, callback_data: AIMenuOption
 ):
     if callback_data.action == AIMenuBtns.BACK:

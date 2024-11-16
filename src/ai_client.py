@@ -2,6 +2,8 @@ import logging
 
 from openai import AsyncOpenAI
 
+logger = logging.getLogger(__name__)
+
 
 class AIClient:
     def __init__(self, token: str, assistant_id: str):
@@ -16,13 +18,14 @@ class AIClient:
         logging.debug(f"Created new thread {thread}")
         return thread.id
 
-    async def get_response(self, ai_thread_id: str, text: str):
+    async def get_response(self, ai_thread_id: str, text: str) -> str | None:
         await self.client.beta.threads.messages.create(thread_id=ai_thread_id, role="user", content=text)
-        async with self.client.beta.threads.runs.stream(
+        run = await self.client.beta.threads.runs.create_and_poll(
             thread_id=ai_thread_id, assistant_id=self.assistant_id
-        ) as stream:
-            async for response in stream:
-                logging.debug(f"{ai_thread_id=}|{response.event=}")
-                if response.event == "thread.message.completed":
-                    return response.data.content[0].text.value
-            return None
+        )
+        logger.info(f"Run completed: {run.status=}")
+        if run.status == "completed":
+            messages = await self.client.beta.threads.messages.list(thread_id=ai_thread_id)
+            return messages.data[0].content[0].text.value
+
+        return None
