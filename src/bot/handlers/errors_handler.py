@@ -1,8 +1,10 @@
-import logging
-import traceback
 import typing
 
+import logging
+import traceback
+
 import aiogram
+
 from aiogram import Router, html
 
 from config import Settings

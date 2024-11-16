@@ -1,30 +1,32 @@
 import re
+
 from urllib.parse import urlencode
 
 import aiogram.utils.formatting
-from aiogram import Router, types, F
+
+from aiogram import F, Router, types
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import FSInputFile, InputMediaPhoto, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.types import FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from aiogram.utils.chat_action import ChatActionSender
 
 from ai_client import AIClient
-from bot.handlers.consts import TEXTS, IMGS
+from bot.handlers.consts import IMGS, TEXTS
 from bot.keyboards import (
-    start_kbd,
-    MainMenuOption,
-    MainMenuBtns,
-    before_surgery_kbd,
-    SurgeryMenuOption,
-    SurgeryMenuBtns,
-    after_surgery_kbd,
-    AfterSurgeryMenuOption,
     AfterSurgeryMenuBtns,
-    ai_kbd,
-    AIMenuOption,
+    AfterSurgeryMenuOption,
     AIMenuBtns,
+    AIMenuOption,
+    MainMenuBtns,
+    MainMenuOption,
+    SurgeryMenuBtns,
+    SurgeryMenuOption,
+    after_surgery_kbd,
+    ai_kbd,
+    before_surgery_kbd,
+    start_kbd,
 )
 
 router = Router()

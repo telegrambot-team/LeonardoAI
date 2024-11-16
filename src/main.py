@@ -1,5 +1,6 @@
 import asyncio
 import logging.config
+
 from pathlib import Path
 
 from aiogram import Bot, Dispatcher
@@ -14,7 +15,7 @@ from bot.handlers.base_handlers import router as base_router
 from bot.handlers.errors_handler import router as errors_router
 from bot.internal.notify_admin import on_shutdown_notify, on_startup_notify
 from bot.middlewares.updates_dumper_middleware import UpdatesDumperMiddleware
-from config import get_logging_config, Settings
+from config import Settings, get_logging_config
 
 
 async def set_bot_commands(bot: Bot) -> None:

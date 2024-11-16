@@ -1,7 +1,8 @@
-from logging.handlers import RotatingFileHandler
 import sys
 
-from pydantic import SecretStr, RedisDsn
+from logging.handlers import RotatingFileHandler
+
+from pydantic import RedisDsn, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
