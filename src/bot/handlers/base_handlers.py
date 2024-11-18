@@ -29,6 +29,7 @@ from bot.keyboards import (
     before_surgery_kbd,
     start_kbd,
 )
+from bot.md_utils import refactor_string
 
 router = Router()
 
@@ -77,7 +78,7 @@ async def main_menu_handler(callback: types.CallbackQuery, callback_data: MainMe
             )
         case MainMenuBtns.SCHEDULE_CONSULTATION:
             link = f"https://wa.me/79213713864?{urlencode({"text":
-                                                            "Здравствуйте! Я хочу записаться на консультацию к Стайсупову Валерию Юрьевичу."})}"
+                                                               "Здравствуйте! Я хочу записаться на консультацию к Стайсупову Валерию Юрьевичу."})}"
             escaped_link = aiogram.html.link("ссылке", link)
             await callback.message.edit_text(
                 f"Вы можете записаться на консультацию в WhatsApp по {escaped_link}\n\n"
@@ -146,10 +147,6 @@ async def ai_menu_handler(
     await callback.message.answer("Чем я могу помочь?")
 
 
-def clean(response: str):
-    return re.sub(r"【.*?】", "", response)
-
-
 @router.message(StatesBot.IN_AI_DIALOG)
 async def ai_leonardo_handler(message: types.Message, ai_client: AIClient, settings, state: FSMContext):
     data = await state.get_data()
@@ -164,6 +161,6 @@ async def ai_leonardo_handler(message: types.Message, ai_client: AIClient, setti
         if response is None:
             await message.answer("Извините, я отвлекся, давайте начнём новый разговор 🙈")
             return
-        cleaned_response = clean(response)
+        cleaned_response = refactor_string(response)
         msg_answer = await message.answer(cleaned_response, parse_mode=ParseMode.MARKDOWN_V2)
         await msg_answer.forward(settings.CHAT_LOG_ID)
