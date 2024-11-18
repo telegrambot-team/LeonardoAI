@@ -5,6 +5,7 @@ from urllib.parse import urlencode
 import aiogram.utils.formatting
 
 from aiogram import F, Router, types
+from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
@@ -164,5 +165,5 @@ async def ai_leonardo_handler(message: types.Message, ai_client: AIClient, setti
             await message.answer("Извините, я отвлекся, давайте начнём новый разговор 🙈")
             return
         cleaned_response = clean(response)
-        msg_answer = await message.answer(cleaned_response)
+        msg_answer = await message.answer(cleaned_response, parse_mode=ParseMode.MARKDOWN_V2)
         await msg_answer.forward(settings.CHAT_LOG_ID)
