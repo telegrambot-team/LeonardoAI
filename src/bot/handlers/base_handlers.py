@@ -1,9 +1,8 @@
-import re
-
+import logging
 from urllib.parse import urlencode
 
 import aiogram.utils.formatting
-
+import openai
 from aiogram import F, Router, types
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
@@ -140,7 +139,10 @@ async def ai_menu_handler(
     data = await state.get_data()
 
     if "ai_thread_id" in data:
-        await ai_client.delete_thread(data["ai_thread_id"])
+        try:
+            await ai_client.delete_thread(data["ai_thread_id"])
+        except openai.NotFoundError:
+            logging.warning(f"Thread {data['ai_thread_id']} not found")
 
     new_thread_id = await ai_client.new_thread()
     await state.update_data(ai_thread_id=new_thread_id)
@@ -157,7 +159,11 @@ async def ai_leonardo_handler(message: types.Message, ai_client: AIClient, setti
 
     await message.forward(settings.CHAT_LOG_ID)
     async with ChatActionSender.typing(bot=message.bot, chat_id=message.chat.id):
-        response = await ai_client.get_response(new_thread_id, message.text)
+        try:
+            response = await ai_client.get_response(new_thread_id, message.text)
+        except openai.NotFoundError:
+            logging.warning(f"Thread {data['ai_thread_id']} not found")
+            response = None
         if response is None:
             await message.answer("Извините, я отвлекся, давайте начнём новый разговор 🙈")
             return
