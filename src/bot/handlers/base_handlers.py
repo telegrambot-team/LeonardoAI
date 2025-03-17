@@ -164,6 +164,8 @@ async def ai_leonardo_handler(message: types.Message, ai_client: AIClient, setti
         except openai.NotFoundError:
             logging.warning(f"Thread {data['ai_thread_id']} not found")
             response = None
+            await state.update_data(ai_thread_id=None)
+
         if response is None:
             await message.answer("Извините, я отвлекся, давайте начнём новый разговор 🙈")
             return
