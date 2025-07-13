@@ -35,11 +35,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e .
-          pip install pytest pytest-cov coverage-badge
+          pip install pytest pytest-cov genbadge[coverage]
       - name: Run tests
         run: |
-          pytest -q
-          coverage-badge -o coverage.svg -f
+          pytest --cov=src --cov-report=xml --cov-report=term
+          genbadge coverage -i coverage.xml -o coverage.svg
       - uses: actions/upload-artifact@v4
         with:
           name: coverage-badge
