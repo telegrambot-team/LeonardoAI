@@ -1,3 +1,6 @@
+[![CI](https://github.com/nikoontelegram/LeonardoAI/actions/workflows/ci.yml/badge.svg)](https://github.com/nikoontelegram/LeonardoAI/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/nikoontelegram/LeonardoAI/actions/workflows/ci.yml)
+
 ### Setup project
 
 1. Create env:
