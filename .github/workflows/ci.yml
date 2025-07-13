@@ -6,25 +6,37 @@ on:
   pull_request:
     branches: [main]
 
+# Права, необходимые Pages-workflow'у
+permissions:
+  contents: read      # читать код
+  pages: write        # пушить в gh-pages
+  id-token: write     # OIDC для деплоя
+
+# GitHub рекомендует ставить блокировку, чтобы старый деплой отменялся новым
+# и не было гонок при публикации Pages
+concurrency:
+  group: "pages"
+  cancel-in-progress: true  #  [oai_citation:0‡GitHub Docs](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages?utm_source=chatgpt.com)
+
 jobs:
+  ## ----------  Lint  ----------
   lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      - name: Install dependencies
+          python-version: "3.11"
+      - name: Install ruff
         run: |
           python -m pip install --upgrade pip
           pip install ruff
       - name: Check formatting
-        run: |
-          ruff format src tests --check
+        run: ruff format src tests --check
       - name: Lint with ruff
-        run: |
-          ruff check src tests
+        run: ruff check src tests
 
+  ## ----------  Tests + Coverage  ----------
   tests:
     runs-on: ubuntu-latest
     strategy:
@@ -43,13 +55,31 @@ jobs:
           pip install -e .
           pip install pytest pytest-cov genbadge[coverage]
       - name: Run unit tests
-        run: |
-          pytest --cov=src --cov-report=xml:coverage.xml
+        run: pytest --cov=src --cov-report=xml:coverage.xml
       - name: Generate coverage badge
-        run: genbadge coverage -i coverage.xml -o coverage.svg
-      - uses: actions/upload-artifact@v4
-        if: ${{ always() && matrix.python-version == '3.11' }}
+        run: genbadge coverage -i coverage.xml -o coverage.svg  #  [oai_citation:1‡PyPI](https://pypi.org/project/genbadge/?utm_source=chatgpt.com)
+      # Готовим контент для Pages только один раз (Py 3.11),
+      # чтобы не дублировать артефакт
+      - name: Copy badge to public/
+        if: matrix.python-version == '3.11'
+        run: |
+          mkdir public
+          mv coverage.svg public/
+      - name: Upload Pages artifact
+        if: matrix.python-version == '3.11'
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: coverage-badge
-          path: coverage.svg
-          overwrite: true
+          path: public                      #  [oai_citation:2‡GitHub](https://github.com/actions/upload-pages-artifact?utm_source=chatgpt.com)
+
+  ## ----------  Deploy to GitHub Pages  ----------
+  deploy:
+    runs-on: ubuntu-latest
+    needs: tests
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v3         #  [oai_citation:3‡GitHub](https://github.com/actions/deploy-pages?utm_source=chatgpt.com)
