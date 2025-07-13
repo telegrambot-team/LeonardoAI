@@ -48,7 +48,7 @@ jobs:
       - name: Generate coverage badge
         run: genbadge coverage -i coverage.xml -o coverage.svg
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: ${{ always() && matrix.python-version == '3.11' }}
         with:
           name: coverage-badge
           path: coverage.svg
