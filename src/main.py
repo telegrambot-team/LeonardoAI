@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import logging.config
 
 from pathlib import Path
@@ -17,6 +18,8 @@ from bot.internal.notify_admin import on_shutdown_notify, on_startup_notify
 from bot.middlewares.updates_dumper_middleware import UpdatesDumperMiddleware
 from config import Settings, get_logging_config
 
+logger = logging.getLogger(__name__)
+
 
 async def set_bot_commands(bot: Bot) -> None:
     default_commands = [BotCommand(command="/start", description="Главное меню")]
@@ -32,7 +35,7 @@ async def main():
     settings = Settings()
 
     bot = Bot(token=settings.BOT_TOKEN.get_secret_value(), default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-    logging.info("bot started")
+    logger.info("bot started")
     storage = RedisStorage.from_url(settings.REDIS_URL.unicode_string())
 
     ai_client = AIClient(settings.OPENAI_API_KEY.get_secret_value(), settings.ASSISTANT_ID.get_secret_value())
