@@ -1,5 +1,5 @@
 [![CI](https://github.com/telegrambot-team/LeonardoAI/actions/workflows/ci.yml/badge.svg)](https://github.com/telegrambot-team/LeonardoAI/actions/workflows/ci.yml)
-[![Coverage](https://nightly.link/telegrambot-team/LeonardoAI/workflows/ci.yml/main/coverage-badge.zip/coverage.svg)](https://github.com/telegrambot-team/LeonardoAI/actions/workflows/ci.yml)
+[![Coverage](https://nightly.link/telegrambot-team/LeonardoAI/workflows/ci/main/coverage-badge.zip/coverage.svg)](https://nightly.link/telegrambot-team/LeonardoAI/workflows/ci/main/coverage-badge.zip)
 
 ### Setup project
 
