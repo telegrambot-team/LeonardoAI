@@ -9,6 +9,8 @@ from aiogram import Router, html
 
 from config import Settings
 
+logger = logging.getLogger(__name__)
+
 if typing.TYPE_CHECKING:
     from aiogram.types.error_event import ErrorEvent
 
@@ -28,6 +30,6 @@ async def error_handler(error_event: "ErrorEvent", bot: aiogram.Bot, settings: S
         f"🚨 <b>An error occurred</b> 🚨\n\n"
         f"<b>Type:</b> {exc_name}\n<b>Message:</b> {exc_info}\n\n<b>Traceback:</b>\n<code>{tb}</code>"
     )
-    logging.exception("Exception:", exc_info=exc_info)
+    logger.exception("Exception:", exc_info=exc_info)
 
     await bot.send_message(settings.ADMIN, error_message)

@@ -15,7 +15,7 @@ class AIClient:
 
     async def new_thread(self) -> str:
         thread = await self.client.beta.threads.create()
-        logging.debug(f"Created new thread {thread}")
+        logger.debug("Created new thread %s", thread)
         return thread.id
 
     async def get_response(self, ai_thread_id: str, text: str) -> str | None:
@@ -23,7 +23,7 @@ class AIClient:
         run = await self.client.beta.threads.runs.create_and_poll(
             thread_id=ai_thread_id, assistant_id=self.assistant_id
         )
-        logger.info(f"Run completed: {run.status=}")
+        logger.info("Run completed: %s", run.status)
         if run.status == "completed":
             messages = await self.client.beta.threads.messages.list(thread_id=ai_thread_id)
             return messages.data[0].content[0].text.value
