@@ -23,6 +23,11 @@ dependencies = [
 ]
 requires-python = ">=3.11"
 
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = {find = {where = ["src"]}}
+py-modules = ["ai_client", "config", "main"]
+
 [project.scripts]
 bot-run = "main:run_main"
 
@@ -32,7 +37,6 @@ target-version = ['py311']
 skip-string-normalization = true
 
 [tool.pytest.ini_options]
-asyncio_mode = "auto"
 testpaths = "tests"
 filterwarnings = [
     "ignore::DeprecationWarning",
