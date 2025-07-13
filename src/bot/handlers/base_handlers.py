@@ -1,8 +1,10 @@
 import logging
+
 from urllib.parse import urlencode
 
 import aiogram.utils.formatting
 import openai
+
 from aiogram import F, Router, types
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
@@ -30,6 +32,8 @@ from bot.keyboards import (
 )
 from bot.md_utils import refactor_string
 
+logger = logging.getLogger(__name__)
+
 router = Router()
 
 
@@ -54,7 +58,7 @@ async def start_message(message: types.Message, state: FSMContext) -> None:
 async def ai_leonardo_handler_start(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(StatesBot.IN_AI_DIALOG)
     await callback.message.edit_text(
-        "Напишите своё сообщение в чат чтобы продолжить диалог," " или начните новый диалог нажав на кнопку ниже",
+        "Напишите своё сообщение в чат чтобы продолжить диалог, или начните новый диалог нажав на кнопку ниже",
         reply_markup=ai_kbd,
     )
 
@@ -76,8 +80,9 @@ async def main_menu_handler(callback: types.CallbackQuery, callback_data: MainMe
                 reply_markup=back_kbd,
             )
         case MainMenuBtns.SCHEDULE_CONSULTATION:
-            link = f"https://wa.me/79213713864?{urlencode({"text":
-                                                               "Здравствуйте! Я хочу записаться на консультацию к Стайсупову Валерию Юрьевичу."})}"
+            link = f"https://wa.me/79213713864?{
+                urlencode({'text': 'Здравствуйте! Я хочу записаться на консультацию к Стайсупову Валерию Юрьевичу.'})
+            }"
             escaped_link = aiogram.html.link("ссылке", link)
             await callback.message.edit_text(
                 f"Вы можете записаться на консультацию в WhatsApp по {escaped_link}\n\n"
@@ -86,12 +91,10 @@ async def main_menu_handler(callback: types.CallbackQuery, callback_data: MainMe
                 reply_markup=back_kbd,
             )
         case MainMenuBtns.SCHEDULE_SURGERY:
-            link = f"https://wa.me/79213713864?{urlencode({"text": "Здравствуйте! Я хочу записаться на операцию к Стайсупову Валерию Юрьевичу."})}"
+            link = f"https://wa.me/79213713864?{urlencode({'text': 'Здравствуйте! Я хочу записаться на операцию к Стайсупову Валерию Юрьевичу.'})}"
             escaped_link = aiogram.html.link("ссылке", link)
             await callback.message.edit_text(
-                f"Вы можете записаться на операцию в WhatsApp по {escaped_link}\n\n"
-                f""
-                f"Или по телефону: +7-812-403-02-01",
+                f"Вы можете записаться на операцию в WhatsApp по {escaped_link}\n\nИли по телефону: +7-812-403-02-01",
                 reply_markup=back_kbd,
             )
 
@@ -142,7 +145,7 @@ async def ai_menu_handler(
         try:
             await ai_client.delete_thread(data["ai_thread_id"])
         except openai.NotFoundError:
-            logging.warning(f"Thread {data['ai_thread_id']} not found")
+            logger.warning("Thread %s not found", data["ai_thread_id"])
 
     new_thread_id = await ai_client.new_thread()
     await state.update_data(ai_thread_id=new_thread_id)
@@ -162,7 +165,7 @@ async def ai_leonardo_handler(message: types.Message, ai_client: AIClient, setti
         try:
             response = await ai_client.get_response(new_thread_id, message.text)
         except openai.NotFoundError:
-            logging.warning(f"Thread {data['ai_thread_id']} not found")
+            logger.warning("Thread %s not found", data["ai_thread_id"])
             response = None
             await state.update_data(ai_thread_id=None)
 

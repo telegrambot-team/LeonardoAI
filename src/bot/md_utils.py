@@ -7,7 +7,8 @@ def clean(response: str):
 
 def escape_markdown_v2(text: str) -> str:
     escape_chars = r"_*[]()~`>#+-=|{}.!"
-    return re.sub(r"([%s])" % re.escape(escape_chars), r"\\\1", text)
+    pattern = rf"([{re.escape(escape_chars)}])"
+    return re.sub(pattern, r"\\\1", text)
 
 
 def escape_stars(s):

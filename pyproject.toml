@@ -50,16 +50,10 @@ ignore = [
   "TD", # flake8-todos
   "FIX", # flake8-fixme
   "ANN", # flake8-annotations (handled by mypy)
-  "EM", # flake8-errmsg - String literals in exceptions
   "E501", # pycodestyle - line too long (handled by formatter)
   "COM812", # forced by ruff formatter
   "ISC001", # forced by ruff formatter
-  "TRY003", # long message for exceptions
-  "EM101", # allow string literals for exceptions
-  "EM102", # allow f-string literals for exceptions
-  "FBT001",  # Boolean-typed positional argument in function definition
   "INP001", # part of an implicit namespace package. Add an `__init__.py`
-  "G004", # Logging statement uses f-string
 ]
 unfixable = [
   "F", # pyflakes
