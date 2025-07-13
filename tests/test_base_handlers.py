@@ -1,4 +1,4 @@
-from bot.handlers.base_handlers import clean
+from bot.md_utils import clean
 
 
 def test_clean():
