@@ -8,6 +8,8 @@ from aiogram import BaseMiddleware
 from aiogram.dispatcher.event.bases import UNHANDLED
 from aiogram.types import TelegramObject, Update
 
+logger = logging.getLogger(__name__)
+
 
 class UpdatesDumperMiddleware(BaseMiddleware):
     async def __call__(
@@ -15,8 +17,8 @@ class UpdatesDumperMiddleware(BaseMiddleware):
     ) -> Any:
         json_event = event.model_dump_json(exclude_unset=True)
 
-        logging.debug(json_event)
+        logger.debug(json_event)
         res = await handler(event, data)
         if res is UNHANDLED:
-            logging.warning("UNHANDLED")
+            logger.warning("UNHANDLED")
         return res
