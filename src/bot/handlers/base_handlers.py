@@ -17,12 +17,12 @@ from aiogram.utils.chat_action import ChatActionSender
 from ai_client import AIClient
 from bot.handlers.consts import IMGS, TEXTS
 from bot.keyboards import (
+    AdminMenuBtns,
+    AdminMenuOption,
     AfterSurgeryMenuBtns,
     AfterSurgeryMenuOption,
     AIMenuBtns,
     AIMenuOption,
-    AdminMenuBtns,
-    AdminMenuOption,
     MainMenuBtns,
     MainMenuOption,
     SurgeryMenuBtns,
