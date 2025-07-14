@@ -9,6 +9,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     BOT_TOKEN: SecretStr
     ADMIN: int
+    MODERATOR: int
     OPENAI_API_KEY: SecretStr
     ASSISTANT_ID: SecretStr
     CHAT_LOG_ID: int
