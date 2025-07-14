@@ -55,7 +55,7 @@ class AdminMenuOption(CallbackData, prefix="admin_menu"):
     action: AdminMenuBtns
 
 
-def _build_start_kbd(is_admin: bool = False):
+def _build_start_kbd(*, is_admin: bool = False):
     kb = InlineKeyboardBuilder()
     kb.button(text="Разговор с моей цифровой копией", callback_data=MainMenuOption(action=MainMenuBtns.AI_LEONARDO))
     kb.button(text="Перед операцией", callback_data=MainMenuOption(action=MainMenuBtns.BEFORE_SURGERY))
