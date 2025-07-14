@@ -25,7 +25,7 @@ jobs:
       - run: ruff format src tests --check
       - run: ruff check src tests
 
-  build-pages:
+  tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -33,10 +33,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -49,25 +45,35 @@ jobs:
           pip install pytest pytest-cov genbadge[coverage]
           pytest --cov=src --cov-report=xml:coverage.xml
 
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.python-version }}
+          path: coverage.xml
+
+      - name: Configure GitHub Pages
+        if: matrix.python-version == '3.11' && github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: actions/configure-pages@v5
+
       - name: Generate coverage badge
-        if: matrix.python-version == '3.11'
+        if: matrix.python-version == '3.11' && github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
           genbadge coverage -i coverage.xml -o coverage.svg
 
       - name: Prepare public dir
-        if: matrix.python-version == '3.11'
+        if: matrix.python-version == '3.11' && github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
           mkdir public
           mv coverage.svg public/
 
       - name: Upload Pages artifact
-        if: matrix.python-version == '3.11'
+        if: matrix.python-version == '3.11' && github.ref == 'refs/heads/main' && github.event_name == 'push'
         uses: actions/upload-pages-artifact@v3
         with:
           path: public
 
   deploy:
-    needs: build-pages
+    needs: tests
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment:
