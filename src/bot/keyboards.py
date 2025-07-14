@@ -47,15 +47,15 @@ class AIMenuOption(CallbackData, prefix="ai_menu"):
     action: AIMenuBtns
 
 
-class AdminMenuBtns(IntEnum):
+class ModeratorMenuBtns(IntEnum):
     CLEAR_CONTEXTS = auto()
 
 
-class AdminMenuOption(CallbackData, prefix="admin_menu"):
-    action: AdminMenuBtns
+class ModeratorMenuOption(CallbackData, prefix="moderator_menu"):
+    action: ModeratorMenuBtns
 
 
-def _build_start_kbd(*, is_admin: bool = False):
+def _build_start_kbd(*, is_moderator: bool = False):
     kb = InlineKeyboardBuilder()
     kb.button(text="Разговор с моей цифровой копией", callback_data=MainMenuOption(action=MainMenuBtns.AI_LEONARDO))
     kb.button(text="Перед операцией", callback_data=MainMenuOption(action=MainMenuBtns.BEFORE_SURGERY))
@@ -65,8 +65,8 @@ def _build_start_kbd(*, is_admin: bool = False):
     )
     kb.button(text="Записаться на операцию", callback_data=MainMenuOption(action=MainMenuBtns.SCHEDULE_SURGERY))
     kb.adjust(1, 2, 2)
-    if is_admin:
-        kb.button(text="Очистить контекст", callback_data=AdminMenuOption(action=AdminMenuBtns.CLEAR_CONTEXTS))
+    if is_moderator:
+        kb.button(text="Очистить контекст", callback_data=ModeratorMenuOption(action=ModeratorMenuBtns.CLEAR_CONTEXTS))
         kb.adjust(1)
     return kb.as_markup()
 
@@ -100,7 +100,7 @@ def _ai_kbd():
 
 
 start_kbd = _build_start_kbd()
-start_admin_kbd = _build_start_kbd(is_admin=True)
+start_moderator_kbd = _build_start_kbd(is_moderator=True)
 before_surgery_kbd = _before_surgery_kbd()
 after_surgery_kbd = _after_surgery_kbd()
 ai_kbd = _ai_kbd()

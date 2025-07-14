@@ -17,21 +17,21 @@ from aiogram.utils.chat_action import ChatActionSender
 from ai_client import AIClient
 from bot.handlers.consts import IMGS, TEXTS
 from bot.keyboards import (
-    AdminMenuBtns,
-    AdminMenuOption,
     AfterSurgeryMenuBtns,
     AfterSurgeryMenuOption,
     AIMenuBtns,
     AIMenuOption,
     MainMenuBtns,
     MainMenuOption,
+    ModeratorMenuBtns,
+    ModeratorMenuOption,
     SurgeryMenuBtns,
     SurgeryMenuOption,
     after_surgery_kbd,
     ai_kbd,
     before_surgery_kbd,
-    start_admin_kbd,
     start_kbd,
+    start_moderator_kbd,
 )
 from bot.md_utils import refactor_string
 
@@ -54,7 +54,7 @@ def get_start_text(full_name: str):
 @router.message(CommandStart())
 async def start_message(message: types.Message, state: FSMContext, settings) -> None:
     await state.set_state()
-    kb = start_admin_kbd if message.from_user.id == settings.ADMIN else start_kbd
+    kb = start_moderator_kbd if message.from_user.id == settings.MODERATOR else start_kbd
     await message.answer(get_start_text(message.from_user.full_name), reply_markup=kb)
 
 
@@ -112,7 +112,7 @@ async def analyze_list_handler(callback: types.CallbackQuery, callback_data: Sur
         case SurgeryMenuBtns.MEDICINE_AFTER:
             await callback.message.edit_text("Лекарства после операции", reply_markup=after_surgery_kbd)
         case SurgeryMenuBtns.BACK:
-            kb = start_admin_kbd if callback.from_user.id == settings.ADMIN else start_kbd
+            kb = start_moderator_kbd if callback.from_user.id == settings.MODERATOR else start_kbd
             await callback.message.edit_text(get_start_text(callback.from_user.full_name), reply_markup=kb)
 
 
@@ -141,7 +141,7 @@ async def ai_menu_handler(
 ) -> None:
     if callback_data.action == AIMenuBtns.BACK:
         await state.set_state()
-        kb = start_admin_kbd if callback.from_user.id == settings.ADMIN else start_kbd
+        kb = start_moderator_kbd if callback.from_user.id == settings.MODERATOR else start_kbd
         await callback.message.edit_text(get_start_text(callback.from_user.full_name), reply_markup=kb)
         return
 
@@ -158,18 +158,18 @@ async def ai_menu_handler(
     await callback.message.answer("Чем я могу помочь?")
 
 
-@router.callback_query(AdminMenuOption.filter())
-async def admin_menu_handler(
-    callback: types.CallbackQuery, callback_data: AdminMenuOption, state: FSMContext, settings
+@router.callback_query(ModeratorMenuOption.filter())
+async def moderator_menu_handler(
+    callback: types.CallbackQuery, callback_data: ModeratorMenuOption, state: FSMContext, settings
 ) -> None:
-    if callback.from_user.id != settings.ADMIN:
+    if callback.from_user.id != settings.MODERATOR:
         await callback.answer("Недостаточно прав", show_alert=True)
         return
 
-    if callback_data.action == AdminMenuBtns.CLEAR_CONTEXTS:
+    if callback_data.action == ModeratorMenuBtns.CLEAR_CONTEXTS:
         await state.storage.redis.flushdb()
         await state.set_state()
-        await callback.message.edit_text("Контекст всех пользователей очищен.", reply_markup=start_admin_kbd)
+        await callback.message.edit_text("Контекст всех пользователей очищен.", reply_markup=start_moderator_kbd)
 
 
 @router.message(StatesBot.IN_AI_DIALOG)
