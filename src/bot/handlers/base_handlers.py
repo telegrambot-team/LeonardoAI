@@ -23,12 +23,15 @@ from bot.keyboards import (
     AIMenuOption,
     MainMenuBtns,
     MainMenuOption,
+    ModeratorMenuBtns,
+    ModeratorMenuOption,
     SurgeryMenuBtns,
     SurgeryMenuOption,
     after_surgery_kbd,
     ai_kbd,
     before_surgery_kbd,
     start_kbd,
+    start_moderator_kbd,
 )
 from bot.md_utils import refactor_string
 
@@ -49,9 +52,10 @@ def get_start_text(full_name: str):
 
 
 @router.message(CommandStart())
-async def start_message(message: types.Message, state: FSMContext) -> None:
+async def start_message(message: types.Message, state: FSMContext, settings) -> None:
     await state.set_state()
-    await message.answer(get_start_text(message.from_user.full_name), reply_markup=start_kbd)
+    kb = start_moderator_kbd if message.from_user.id == settings.MODERATOR else start_kbd
+    await message.answer(get_start_text(message.from_user.full_name), reply_markup=kb)
 
 
 @router.callback_query(MainMenuOption.filter(F.action == MainMenuBtns.AI_LEONARDO))
@@ -100,7 +104,7 @@ async def main_menu_handler(callback: types.CallbackQuery, callback_data: MainMe
 
 
 @router.callback_query(SurgeryMenuOption.filter())
-async def analyze_list_handler(callback: types.CallbackQuery, callback_data: SurgeryMenuOption):
+async def analyze_list_handler(callback: types.CallbackQuery, callback_data: SurgeryMenuOption, settings) -> None:
     match callback_data.action:
         case SurgeryMenuBtns.ANALYZE_LIST:
             fname = "data/Список Анализов.pdf"
@@ -108,7 +112,8 @@ async def analyze_list_handler(callback: types.CallbackQuery, callback_data: Sur
         case SurgeryMenuBtns.MEDICINE_AFTER:
             await callback.message.edit_text("Лекарства после операции", reply_markup=after_surgery_kbd)
         case SurgeryMenuBtns.BACK:
-            await callback.message.edit_text(get_start_text(callback.from_user.full_name), reply_markup=start_kbd)
+            kb = start_moderator_kbd if callback.from_user.id == settings.MODERATOR else start_kbd
+            await callback.message.edit_text(get_start_text(callback.from_user.full_name), reply_markup=kb)
 
 
 @router.callback_query(AfterSurgeryMenuOption.filter())
@@ -132,11 +137,12 @@ async def after_surgery_handler(callback: types.CallbackQuery, callback_data: Af
 
 @router.callback_query(AIMenuOption.filter())
 async def ai_menu_handler(
-    callback: types.CallbackQuery, ai_client: AIClient, state: FSMContext, callback_data: AIMenuOption
-):
+    callback: types.CallbackQuery, ai_client: AIClient, state: FSMContext, callback_data: AIMenuOption, settings
+) -> None:
     if callback_data.action == AIMenuBtns.BACK:
         await state.set_state()
-        await callback.message.edit_text(get_start_text(callback.from_user.full_name), reply_markup=start_kbd)
+        kb = start_moderator_kbd if callback.from_user.id == settings.MODERATOR else start_kbd
+        await callback.message.edit_text(get_start_text(callback.from_user.full_name), reply_markup=kb)
         return
 
     data = await state.get_data()
@@ -150,6 +156,20 @@ async def ai_menu_handler(
     new_thread_id = await ai_client.new_thread()
     await state.update_data(ai_thread_id=new_thread_id)
     await callback.message.answer("Чем я могу помочь?")
+
+
+@router.callback_query(ModeratorMenuOption.filter())
+async def moderator_menu_handler(
+    callback: types.CallbackQuery, callback_data: ModeratorMenuOption, state: FSMContext, settings
+) -> None:
+    if callback.from_user.id != settings.MODERATOR:
+        await callback.answer("Недостаточно прав", show_alert=True)
+        return
+
+    if callback_data.action == ModeratorMenuBtns.CLEAR_CONTEXTS:
+        await state.storage.redis.flushdb()
+        await state.set_state()
+        await callback.message.edit_text("Контекст всех пользователей очищен.", reply_markup=start_moderator_kbd)
 
 
 @router.message(StatesBot.IN_AI_DIALOG)
