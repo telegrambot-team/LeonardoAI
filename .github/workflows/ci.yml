@@ -7,11 +7,10 @@ on:
     branches: [main]
 
 permissions:
-  contents: read          # читаем код
-  pages: write            # деплоим Pages
-  id-token: write         # OIDC-токен для Pages
+  contents: read
+  pages: write
+  id-token: write
 
-# ----------  Lint  ----------
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -26,21 +25,22 @@ jobs:
       - run: ruff format src tests --check
       - run: ruff check src tests
 
-# ----------  Build badge и упаковка Pages  ----------
   build-pages:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.11, 3.12]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 1️⃣ ОБЯЗАТЕЛЬНО — подготавливает метаданные Pages
       - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5   #  [oai_citation:0‡GitHub Docs](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)
+        uses: actions/configure-pages@v5
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python-version }}
 
       - name: Install deps & run tests
         run: |
@@ -50,28 +50,30 @@ jobs:
           pytest --cov=src --cov-report=xml:coverage.xml
 
       - name: Generate coverage badge
+        if: matrix.python-version == '3.11'
         run: |
           genbadge coverage -i coverage.xml -o coverage.svg
 
       - name: Prepare public dir
+        if: matrix.python-version == '3.11'
         run: |
           mkdir public
           mv coverage.svg public/
 
-      # 2️⃣ Упаковываем артефакт «github-pages»
       - name: Upload Pages artifact
+        if: matrix.python-version == '3.11'
         uses: actions/upload-pages-artifact@v3
         with:
           path: public
 
-# ----------  Deploy  ----------
   deploy:
-    needs: build-pages               # артефакт уже готов
+    needs: build-pages
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4   #  [oai_citation:1‡GitHub Docs](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)
+        uses: actions/deploy-pages@v4
