@@ -26,6 +26,7 @@ from bot.keyboards import (
     after_surgery_kbd,
     ai_kbd,
     before_surgery_kbd,
+    get_model_kb,
     start_kbd,
 )
 from bot.md_utils import refactor_string
@@ -54,7 +55,7 @@ async def start_message(message: types.Message, state: FSMContext) -> None:
 async def ai_leonardo_handler_start(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(StatesBot.IN_AI_DIALOG)
     await callback.message.edit_text(
-        "Напишите своё сообщение в чат чтобы продолжить диалог," " или начните новый диалог нажав на кнопку ниже",
+        "Напишите своё сообщение в чат чтобы продолжить диалог, или начните новый диалог нажав на кнопку ниже",
         reply_markup=ai_kbd,
     )
 
@@ -76,8 +77,9 @@ async def main_menu_handler(callback: types.CallbackQuery, callback_data: MainMe
                 reply_markup=back_kbd,
             )
         case MainMenuBtns.SCHEDULE_CONSULTATION:
-            link = f"https://wa.me/79213713864?{urlencode({"text":
-                                                               "Здравствуйте! Я хочу записаться на консультацию к Стайсупову Валерию Юрьевичу."})}"
+            link = f"https://wa.me/79213713864?{
+                urlencode({'text': 'Здравствуйте! Я хочу записаться на консультацию к Стайсупову Валерию Юрьевичу.'})
+            }"
             escaped_link = aiogram.html.link("ссылке", link)
             await callback.message.edit_text(
                 f"Вы можете записаться на консультацию в WhatsApp по {escaped_link}\n\n"
@@ -86,12 +88,10 @@ async def main_menu_handler(callback: types.CallbackQuery, callback_data: MainMe
                 reply_markup=back_kbd,
             )
         case MainMenuBtns.SCHEDULE_SURGERY:
-            link = f"https://wa.me/79213713864?{urlencode({"text": "Здравствуйте! Я хочу записаться на операцию к Стайсупову Валерию Юрьевичу."})}"
+            link = f"https://wa.me/79213713864?{urlencode({'text': 'Здравствуйте! Я хочу записаться на операцию к Стайсупову Валерию Юрьевичу.'})}"
             escaped_link = aiogram.html.link("ссылке", link)
             await callback.message.edit_text(
-                f"Вы можете записаться на операцию в WhatsApp по {escaped_link}\n\n"
-                f""
-                f"Или по телефону: +7-812-403-02-01",
+                f"Вы можете записаться на операцию в WhatsApp по {escaped_link}\n\nИли по телефону: +7-812-403-02-01",
                 reply_markup=back_kbd,
             )
 

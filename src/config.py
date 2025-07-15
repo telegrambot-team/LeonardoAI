@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: SecretStr
     ASSISTANT_ID: SecretStr
     CHAT_LOG_ID: int
+    PAYMENT_PROVIDER_TOKEN: SecretStr
+    SHOP_ID: int
     REDIS_URL: RedisDsn = "redis://redis:6379/0"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)
