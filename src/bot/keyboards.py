@@ -53,6 +53,10 @@ class AIMenuOption(CallbackData, prefix="ai_menu"):
     action: AIMenuBtns
 
 
+class ModelMenuOption(CallbackData, prefix="model_menu"):
+    action: ModelMenuBtns
+
+
 class ModeratorMenuBtns(IntEnum):
     CLEAR_CONTEXTS = auto()
 
@@ -61,12 +65,11 @@ class ModeratorMenuOption(CallbackData, prefix="moderator_menu"):
     action: ModeratorMenuBtns
 
 
-def _build_start_kbd(*, is_moderator: bool = False):
 class ModelMenuOption(CallbackData, prefix="model_menu"):
     action: ModelMenuBtns
 
 
-def _build_start_kbd():
+def _build_start_kbd(*, is_moderator: bool = False):
     kb = InlineKeyboardBuilder()
     kb.button(text="Разговор с моей цифровой копией", callback_data=MainMenuOption(action=MainMenuBtns.AI_LEONARDO))
     kb.button(text="Перед операцией", callback_data=MainMenuOption(action=MainMenuBtns.BEFORE_SURGERY))
