@@ -35,6 +35,12 @@ class AIMenuBtns(IntEnum):
     BACK = auto()
 
 
+class ModelMenuBtns(IntEnum):
+    UPLOAD_PHOTO = auto()
+    PHOTO_REQUIREMENTS = auto()
+    DETAILS = auto()
+
+
 class SurgeryMenuOption(CallbackData, prefix="surgery_menu"):
     action: SurgeryMenuBtns
 
@@ -56,6 +62,11 @@ class ModeratorMenuOption(CallbackData, prefix="moderator_menu"):
 
 
 def _build_start_kbd(*, is_moderator: bool = False):
+class ModelMenuOption(CallbackData, prefix="model_menu"):
+    action: ModelMenuBtns
+
+
+def _build_start_kbd():
     kb = InlineKeyboardBuilder()
     kb.button(text="Разговор с моей цифровой копией", callback_data=MainMenuOption(action=MainMenuBtns.AI_LEONARDO))
     kb.button(text="Перед операцией", callback_data=MainMenuOption(action=MainMenuBtns.BEFORE_SURGERY))
@@ -104,3 +115,18 @@ start_moderator_kbd = _build_start_kbd(is_moderator=True)
 before_surgery_kbd = _before_surgery_kbd()
 after_surgery_kbd = _after_surgery_kbd()
 ai_kbd = _ai_kbd()
+
+
+def get_model_kb():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="📸 Загрузить фотографию", callback_data=ModelMenuOption(action=ModelMenuBtns.UPLOAD_PHOTO))
+    kb.button(text="📋 Требования к фото", callback_data=ModelMenuOption(action=ModelMenuBtns.PHOTO_REQUIREMENTS))
+    kb.button(text="💰 Стоимость и сроки", callback_data=ModelMenuOption(action=ModelMenuBtns.DETAILS))
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+def get_payment_kb():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="Оплата", callback_data="model_payment")
+    return kb.as_markup()

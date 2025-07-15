@@ -30,6 +30,7 @@ from bot.keyboards import (
     after_surgery_kbd,
     ai_kbd,
     before_surgery_kbd,
+    get_model_kb,
     start_kbd,
     start_moderator_kbd,
 )
