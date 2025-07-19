@@ -15,6 +15,7 @@ from aiogram.types import FSInputFile, InlineKeyboardButton, InlineKeyboardMarku
 from aiogram.utils.chat_action import ChatActionSender
 
 from ai_client import AIClient
+from bot.global_ctx import get_global_context
 from bot.handlers.consts import IMGS, TEXTS
 from bot.keyboards import (
     AfterSurgeryMenuBtns,
@@ -174,13 +175,21 @@ async def moderator_menu_handler(
 
 @router.message(StatesBot.IN_AI_DIALOG)
 async def ai_leonardo_handler(message: types.Message, ai_client: AIClient, settings, state: FSMContext):
+    logger.info("Processing user message %s from %s", message.message_id, message.from_user.id)
     data = await state.get_data()
     new_thread_id = data.get("ai_thread_id", None)
     if new_thread_id is None:
         new_thread_id = await ai_client.new_thread()
         await state.update_data(ai_thread_id=new_thread_id)
 
-    await message.forward(settings.CHAT_LOG_ID)
+    forwarded = await message.forward(settings.CHAT_LOG_ID)
+    messages_to_handle = forwarded if isinstance(forwarded, list) else [forwarded]
+    global_ctx = get_global_context(message.bot, state.storage)
+    global_data = await global_ctx.get_data()
+    log_user_message_map = global_data.get("log_user_message_map", {})
+    for msg in messages_to_handle:
+        log_user_message_map[msg.message_id] = message.from_user.id
+    await global_ctx.update_data(log_user_message_map=log_user_message_map)
     async with ChatActionSender.typing(bot=message.bot, chat_id=message.chat.id):
         try:
             response = await ai_client.get_response(new_thread_id, message.text)
@@ -195,3 +204,25 @@ async def ai_leonardo_handler(message: types.Message, ai_client: AIClient, setti
         cleaned_response = refactor_string(response)
         msg_answer = await message.answer(cleaned_response, parse_mode=ParseMode.MARKDOWN_V2)
         await msg_answer.forward(settings.CHAT_LOG_ID)
+
+
+@router.message(
+    lambda message, settings: message.chat.id == settings.CHAT_LOG_ID,
+    lambda message, settings: message.from_user.id == settings.MODERATOR,
+    lambda message: bool(message.reply_to_message),
+)
+async def moderator_reply_handler(message: types.Message, state: FSMContext) -> None:
+    """Forward moderator replies from log chat to the original user."""
+    logger.info("Processing moderator reply %s to %s", message.message_id, message.reply_to_message.message_id)
+
+    global_ctx = get_global_context(message.bot, state.storage)
+    data = await global_ctx.get_data()
+    log_user_message_map: dict[int, int] = data.get("log_user_message_map", {})
+
+    user_id = log_user_message_map.get(message.reply_to_message.message_id)
+    if user_id is None:
+        logger.warning("No user_id found for log message %s", message.reply_to_message.message_id)
+        return
+
+    if message.text:
+        await message.bot.send_message(chat_id=user_id, text=message.text)
