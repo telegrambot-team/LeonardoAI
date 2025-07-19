@@ -12,6 +12,7 @@ from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.types import BotCommand
 
 from ai_client import AIClient
+from bot.global_ctx import init_global
 from bot.handlers.base_handlers import router as base_router
 from bot.handlers.errors_handler import router as errors_router
 from bot.internal.notify_admin import on_shutdown_notify, on_startup_notify
@@ -39,6 +40,7 @@ async def main():
     storage = RedisStorage.from_url(settings.REDIS_URL.unicode_string())
 
     ai_client = AIClient(settings.OPENAI_API_KEY.get_secret_value(), settings.ASSISTANT_ID.get_secret_value())
+    await init_global(storage, bot)
 
     dispatcher = Dispatcher(
         storage=storage, events_isolation=SimpleEventIsolation(), ai_client=ai_client, settings=settings
