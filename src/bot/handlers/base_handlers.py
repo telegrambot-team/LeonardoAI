@@ -217,9 +217,9 @@ async def moderator_reply_handler(message: types.Message, state: FSMContext) -> 
 
     global_ctx = get_global_context(message.bot, state.storage)
     data = await global_ctx.get_data()
-    log_user_message_map: dict[int, int] = data.get("log_user_message_map", {})
+    log_user_message_map: dict[str, int] = data.get("log_user_message_map", {})
 
-    user_id = log_user_message_map.get(message.reply_to_message.message_id)
+    user_id = log_user_message_map.get(str(message.reply_to_message.message_id))
     if user_id is None:
         logger.warning("No user_id found for log message %s", message.reply_to_message.message_id)
         return
