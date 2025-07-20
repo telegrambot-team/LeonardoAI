@@ -5,7 +5,7 @@ from aiogram.fsm.storage.base import BaseStorage, StorageKey
 
 def get_global_context(bot: Bot, storage: BaseStorage) -> FSMContext:
     """Return FSM context for storing global bot data."""
-    key = StorageKey(bot_id=bot.id, chat_id=0, user_id=0, destiny="global")
+    key = StorageKey(bot_id=bot.id, chat_id=0, user_id=0)
     return FSMContext(storage=storage, key=key)
 
 
