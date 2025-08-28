@@ -1,4 +1,4 @@
-from bot.keyboards import AfterSurgeryMenuBtns
+from bot.internal.enums import AfterSurgeryMenuBtns
 
 TEXTS = {
     AfterSurgeryMenuBtns.RINOPLASTIC: """Для удобства, вы можете приобрести эти лекарства заранее, еще до операции:
