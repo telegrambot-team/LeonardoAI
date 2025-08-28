@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 async def set_bot_commands(bot: Bot) -> None:
     default_commands = [
         BotCommand(command="/start", description="Главное меню"),
-        BotCommand(command="/model", description="Моделирование"),
+        BotCommand(command="/model", description="Услуга моделирования"),
     ]
     await bot.set_my_commands(default_commands)
 
