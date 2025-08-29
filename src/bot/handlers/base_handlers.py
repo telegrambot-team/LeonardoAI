@@ -8,7 +8,7 @@ import openai
 from aiogram import F, Router, types
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.filters import CommandStart
+from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
@@ -17,20 +17,18 @@ from aiogram.utils.chat_action import ChatActionSender
 from ai_client import AIClient
 from bot.global_ctx import get_global_context
 from bot.handlers.consts import IMGS, TEXTS
+from bot.internal.enums import AfterSurgeryMenuBtns, AIMenuBtns, MainMenuBtns, ModeratorMenuBtns, SurgeryMenuBtns
+from bot.internal.lexicon import texts
 from bot.keyboards import (
-    AfterSurgeryMenuBtns,
     AfterSurgeryMenuOption,
-    AIMenuBtns,
     AIMenuOption,
-    MainMenuBtns,
     MainMenuOption,
-    ModeratorMenuBtns,
     ModeratorMenuOption,
-    SurgeryMenuBtns,
     SurgeryMenuOption,
     after_surgery_kbd,
     ai_kbd,
     before_surgery_kbd,
+    get_model_kb,
     start_kbd,
     start_moderator_kbd,
 )
@@ -59,6 +57,11 @@ async def start_message(message: types.Message, state: FSMContext, settings) -> 
     await message.answer(get_start_text(message.from_user.full_name), reply_markup=kb)
 
 
+@router.message(Command("model"))
+async def model_message(message: types.Message):
+    await message.answer(texts["welcome"], reply_markup=get_model_kb())
+
+
 @router.callback_query(MainMenuOption.filter(F.action == MainMenuBtns.AI_LEONARDO))
 async def ai_leonardo_handler_start(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(StatesBot.IN_AI_DIALOG)
@@ -70,6 +73,7 @@ async def ai_leonardo_handler_start(callback: types.CallbackQuery, state: FSMCon
 
 @router.callback_query(MainMenuOption.filter())
 async def main_menu_handler(callback: types.CallbackQuery, callback_data: MainMenuOption):
+    await callback.answer()
     back_kbd = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="Назад", callback_data=SurgeryMenuOption(action=SurgeryMenuBtns.BACK).pack())]
@@ -102,6 +106,8 @@ async def main_menu_handler(callback: types.CallbackQuery, callback_data: MainMe
                 f"Вы можете записаться на операцию в WhatsApp по {escaped_link}\n\nИли по телефону: +7-812-403-02-01",
                 reply_markup=back_kbd,
             )
+        case MainMenuBtns.MODELLING:
+            await callback.message.answer(texts["welcome"], reply_markup=get_model_kb())
 
 
 @router.callback_query(SurgeryMenuOption.filter())
