@@ -15,6 +15,7 @@ from ai_client import AIClient
 from bot.global_ctx import init_global
 from bot.handlers.base_handlers import router as base_router
 from bot.handlers.errors_handler import router as errors_router
+from bot.handlers.modeling_handlers import router as model_router
 from bot.internal.notify_admin import on_shutdown_notify, on_startup_notify
 from bot.middlewares.updates_dumper_middleware import UpdatesDumperMiddleware
 from config import Settings, get_logging_config
@@ -23,7 +24,10 @@ logger = logging.getLogger(__name__)
 
 
 async def set_bot_commands(bot: Bot) -> None:
-    default_commands = [BotCommand(command="/start", description="Главное меню")]
+    default_commands = [
+        BotCommand(command="/start", description="Главное меню"),
+        BotCommand(command="/model", description="Услуга моделирования"),
+    ]
     await bot.set_my_commands(default_commands)
 
 
@@ -49,7 +53,7 @@ async def main():
     dispatcher.startup.register(set_bot_commands)
     dispatcher.startup.register(on_startup_notify)
     dispatcher.shutdown.register(on_shutdown_notify)
-    dispatcher.include_routers(base_router, errors_router)
+    dispatcher.include_routers(base_router, errors_router, model_router)
     await dispatcher.start_polling(bot)
 
 
