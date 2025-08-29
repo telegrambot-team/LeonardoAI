@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: SecretStr
     ASSISTANT_ID: SecretStr
     CHAT_LOG_ID: int
+    MODEL_CHAT_ID: int
     PAYMENT_PROVIDER_TOKEN: SecretStr
     SHOP_ID: int
     REDIS_URL: RedisDsn = "redis://redis:6379/0"
