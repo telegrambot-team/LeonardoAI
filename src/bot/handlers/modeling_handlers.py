@@ -45,7 +45,7 @@ async def model_menu_handler(
                 return
             await callback.message.answer(texts["patient_keep_photo"])
             await callback.message.bot.send_document(
-                chat_id=settings.CHAT_LOG_ID,
+                chat_id=settings.MODEL_CHAT_ID,
                 document=doc_id,
                 caption=f"uid:{callback.from_user.id}\n\n{texts['confirm_keep_photo']}",
             )
@@ -136,7 +136,7 @@ async def on_document(message: Message, state: FSMContext, settings: Settings):
 
     user_caption = message.caption or ""
     await message.bot.send_document(
-        chat_id=settings.CHAT_LOG_ID,
+        chat_id=settings.MODEL_CHAT_ID,
         document=doc.file_id,
         caption=f"uid:{message.from_user.id}\n\n{user_caption}",
         reply_markup=get_photo_buttons(chat_id=message.chat.id),
