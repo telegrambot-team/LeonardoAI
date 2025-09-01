@@ -21,11 +21,11 @@ class AIMenuBtns(IntEnum):
 
 
 class ModelMenuBtns(IntEnum):
-    UPLOAD_PHOTO = auto()
     UPLOAD_NEW_PHOTO = auto()
     KEEP_PHOTO = auto()
     CONFIRM_KEEP_PHOTO = auto()
     PHOTO_REQUIREMENTS = auto()
+    PHOTO_REQUIREMENTS_2 = auto()
     DETAILS = auto()
 
 
