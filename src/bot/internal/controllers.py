@@ -13,7 +13,7 @@ def _extract_uid_from_reply(reply: Message) -> int | None:
         return None
 
 
-async def admin_reply_dispatch(message: Message, settings) -> bool:
+async def moderator_reply_dispatch(message: Message, settings) -> bool:
     if message.from_user.id != settings.MODERATOR:
         return False
 
