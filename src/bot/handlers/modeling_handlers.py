@@ -1,19 +1,19 @@
-from pathlib import Path
-
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.base import StorageKey
-from aiogram.types import CallbackQuery, FSInputFile, LabeledPrice, Message, PreCheckoutQuery
+from aiogram.types import CallbackQuery, LabeledPrice, Message, PreCheckoutQuery
 
-from bot.internal.controllers import admin_reply_dispatch
+from bot.internal.controllers import answer_with_photo, moderator_reply_dispatch
 from bot.internal.enums import ModelMenuBtns, PhotoMenuBtns
 from bot.internal.lexicon import texts
 from bot.keyboards import (
     ModelMenuOption,
     UploadPhotoOption,
+    get_accept_button,
     get_details_kb,
     get_keep_rejected_photo_buttons,
     get_photo_buttons,
+    get_photo_requirements_buttons,
     get_rejected_photo_buttons,
     get_requirements_kb,
 )
@@ -28,12 +28,17 @@ async def model_menu_handler(
     callback: CallbackQuery, callback_data: ModelMenuOption, settings: Settings, state: FSMContext
 ):
     await callback.answer()
+    data = await state.get_data()
     match callback_data.action:
-        case ModelMenuBtns.UPLOAD_PHOTO:
-            await callback.message.answer(texts["upload_photo"])
         case ModelMenuBtns.UPLOAD_NEW_PHOTO:
-            await callback.message.answer(texts["payment_success"])
+            if not data.get("paid", False):
+                return
+            await answer_with_photo(
+                message=callback.message, caption=texts["payment_success"], file_name="example_sending.jpg"
+            )
         case ModelMenuBtns.KEEP_PHOTO:
+            if not data.get("paid", False):
+                return
             await callback.message.answer(text=texts["keep_photo"], reply_markup=get_keep_rejected_photo_buttons())
         case ModelMenuBtns.CONFIRM_KEEP_PHOTO:
             data = await state.get_data()
@@ -44,13 +49,31 @@ async def model_menu_handler(
                 )
                 return
             await callback.message.answer(texts["patient_keep_photo"])
+            name = (
+                callback.from_user.full_name + "\n@" + callback.from_user.username
+                if callback.from_user.username
+                else callback.from_user.full_name
+            )
             await callback.message.bot.send_document(
                 chat_id=settings.MODEL_CHAT_ID,
                 document=doc_id,
-                caption=f"uid:{callback.from_user.id}\n\n{texts['confirm_keep_photo']}",
+                caption=f"<b>uid:{callback.from_user.id}\n{name}</b>\n\n{texts['confirm_keep_photo']}",
+                reply_markup=get_accept_button(chat_id=callback.from_user.id),
             )
-        case ModelMenuBtns.PHOTO_REQUIREMENTS:
-            await callback.message.answer(texts["photo_requirements"], reply_markup=get_requirements_kb())
+        case ModelMenuBtns.REQUIREMENTS_BEFORE_PAYMENT:
+            await answer_with_photo(
+                message=callback.message,
+                caption=texts["photo_requirements"],
+                file_name="example_photo.jpg",
+                markup=get_requirements_kb(),
+            )
+        case ModelMenuBtns.REQUIREMENTS_AFTER_PAYMENT:
+            await answer_with_photo(
+                message=callback.message,
+                caption=texts["photo_requirements"],
+                file_name="example_photo.jpg",
+                markup=get_photo_requirements_buttons(),
+            )
         case ModelMenuBtns.DETAILS:
             await callback.message.answer(texts["modeling_message"], reply_markup=get_details_kb())
 
@@ -97,33 +120,37 @@ async def on_pre_checkout_query(pre_checkout_query: PreCheckoutQuery):
 @router.message(F.successful_payment)
 async def on_successful_payment(message: Message, state: FSMContext):
     await state.update_data(paid=True)
-    await message.answer(texts["payment_success"])
+    await answer_with_photo(message=message, caption=texts["payment_success"], file_name="example_sending.jpg")
+    name = (
+        message.from_user.full_name + "\n@" + message.from_user.username
+        if message.from_user.username
+        else message.from_user.full_name
+    )
+    await message.bot.send_message(message.chat.id, texts["new_payment"].format(message.from_user.id, name))
 
 
 @router.message(F.photo)
 async def on_photo(message: Message, state: FSMContext, settings: Settings):
     if message.from_user.id == settings.MODERATOR:
-        await admin_reply_dispatch(message, settings)
+        await moderator_reply_dispatch(message, settings)
         return
 
     data = await state.get_data()
     if not data.get("paid", False):
+        await message.answer(texts["not_paid_or_work_in_progress"])
         return
-    await message.answer_photo(
-        photo=FSInputFile(str(Path(__file__).resolve().parents[1] / "internal" / "upload_screenshot.jpg")),
-        caption=texts["photo_low_quality"],
-    )
+    await answer_with_photo(message=message, caption=texts["photo_low_quality"], file_name="example_sending.jpg")
 
 
 @router.message(F.text)
 async def admin_text_reply(message: Message, settings: Settings):
-    await admin_reply_dispatch(message, settings)
+    await moderator_reply_dispatch(message, settings)
 
 
 @router.message(F.document)
 async def on_document(message: Message, state: FSMContext, settings: Settings):
     if message.from_user.id == settings.MODERATOR:
-        await admin_reply_dispatch(message, settings)
+        await moderator_reply_dispatch(message, settings)
         return
 
     doc = message.document
@@ -132,13 +159,19 @@ async def on_document(message: Message, state: FSMContext, settings: Settings):
 
     data = await state.get_data()
     if not data.get("paid", False):
+        await message.answer(texts["not_paid_or_work_in_progress"])
         return
 
     user_caption = message.caption or ""
+    name = (
+        message.from_user.full_name + "\n@" + message.from_user.username
+        if message.from_user.username
+        else message.from_user.full_name
+    )
     await message.bot.send_document(
         chat_id=settings.MODEL_CHAT_ID,
         document=doc.file_id,
-        caption=f"uid:{message.from_user.id}\n\n{user_caption}",
+        caption=f"<b>uid:{message.from_user.id}\n{name}</b>\n\n{user_caption}",
         reply_markup=get_photo_buttons(chat_id=message.chat.id),
     )
     await state.update_data(last_document=doc.file_id)
