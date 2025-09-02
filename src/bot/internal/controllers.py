@@ -1,4 +1,6 @@
-from aiogram.types import Message
+from pathlib import Path
+
+from aiogram.types import FSInputFile, InlineKeyboardMarkup, Message
 
 
 def _extract_uid_from_reply(reply: Message) -> int | None:
@@ -9,11 +11,11 @@ def _extract_uid_from_reply(reply: Message) -> int | None:
         return None
     try:
         return int(first_line.split(":", 1)[1])
-    except Exception:
+    except (ValueError, IndexError):
         return None
 
 
-async def admin_reply_dispatch(message: Message, settings) -> bool:
+async def moderator_reply_dispatch(message: Message, settings) -> bool:
     if message.from_user.id != settings.MODERATOR:
         return False
 
@@ -40,3 +42,13 @@ async def admin_reply_dispatch(message: Message, settings) -> bool:
         return True
 
     return False
+
+
+async def answer_with_photo(
+    message: Message, caption: str, file_name: str, markup: InlineKeyboardMarkup | None = None
+):
+    await message.answer_photo(
+        photo=FSInputFile(str(Path(__file__).resolve().parents[1] / "internal" / file_name)),
+        caption=caption,
+        reply_markup=markup,
+    )
