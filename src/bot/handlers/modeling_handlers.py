@@ -1,11 +1,9 @@
-from pathlib import Path
-
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.base import StorageKey
-from aiogram.types import CallbackQuery, FSInputFile, LabeledPrice, Message, PreCheckoutQuery
+from aiogram.types import CallbackQuery, LabeledPrice, Message, PreCheckoutQuery
 
-from bot.internal.controllers import moderator_reply_dispatch
+from bot.internal.controllers import answer_with_photo, moderator_reply_dispatch
 from bot.internal.enums import ModelMenuBtns, PhotoMenuBtns
 from bot.internal.lexicon import texts
 from bot.keyboards import (
@@ -35,9 +33,8 @@ async def model_menu_handler(
         case ModelMenuBtns.UPLOAD_NEW_PHOTO:
             if not data.get("paid", False):
                 return
-            await callback.message.answer_photo(
-                photo=FSInputFile(str(Path(__file__).resolve().parents[1] / "internal" / "example_sending.jpg")),
-                caption=texts["payment_success"],
+            await answer_with_photo(
+                message=callback.message, caption=texts["payment_success"], file_name="example_sending.jpg"
             )
         case ModelMenuBtns.KEEP_PHOTO:
             if not data.get("paid", False):
@@ -63,17 +60,19 @@ async def model_menu_handler(
                 caption=f"<b>uid:{callback.from_user.id}\n{name}</b>\n\n{texts['confirm_keep_photo']}",
                 reply_markup=get_accept_button(chat_id=callback.from_user.id),
             )
-        case ModelMenuBtns.PHOTO_REQUIREMENTS:
-            await callback.message.answer_photo(
-                photo=FSInputFile(str(Path(__file__).resolve().parents[1] / "internal" / "example_photo.jpg")),
+        case ModelMenuBtns.REQUIREMENTS_BEFORE_PAYMENT:
+            await answer_with_photo(
+                message=callback.message,
                 caption=texts["photo_requirements"],
-                reply_markup=get_requirements_kb(),
+                file_name="example_photo.jpg",
+                markup=get_requirements_kb(),
             )
-        case ModelMenuBtns.PHOTO_REQUIREMENTS_2:
-            await callback.message.answer_photo(
-                photo=FSInputFile(str(Path(__file__).resolve().parents[1] / "internal" / "example_photo.jpg")),
+        case ModelMenuBtns.REQUIREMENTS_AFTER_PAYMENT:
+            await answer_with_photo(
+                message=callback.message,
                 caption=texts["photo_requirements"],
-                reply_markup=get_photo_requirements_buttons(),
+                file_name="example_photo.jpg",
+                markup=get_photo_requirements_buttons(),
             )
         case ModelMenuBtns.DETAILS:
             await callback.message.answer(texts["modeling_message"], reply_markup=get_details_kb())
@@ -121,10 +120,7 @@ async def on_pre_checkout_query(pre_checkout_query: PreCheckoutQuery):
 @router.message(F.successful_payment)
 async def on_successful_payment(message: Message, state: FSMContext):
     await state.update_data(paid=True)
-    await message.answer_photo(
-        photo=FSInputFile(str(Path(__file__).resolve().parents[1] / "internal" / "example_sending.jpg")),
-        caption=texts["payment_success"],
-    )
+    await answer_with_photo(message=message, caption=texts["payment_success"], file_name="example_sending.jpg")
     name = (
         message.from_user.full_name + "\n@" + message.from_user.username
         if message.from_user.username
@@ -143,10 +139,7 @@ async def on_photo(message: Message, state: FSMContext, settings: Settings):
     if not data.get("paid", False):
         await message.answer(texts["not_paid_or_work_in_progress"])
         return
-    await message.answer_photo(
-        photo=FSInputFile(str(Path(__file__).resolve().parents[1] / "internal" / "example_sending.jpg")),
-        caption=texts["photo_low_quality"],
-    )
+    await answer_with_photo(message=message, caption=texts["photo_low_quality"], file_name="example_sending.jpg")
 
 
 @router.message(F.text)
