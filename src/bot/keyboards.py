@@ -96,7 +96,9 @@ ai_kbd = _ai_kbd()
 def get_model_kb():
     kb = InlineKeyboardBuilder()
     kb.button(text="💰 Стоимость и сроки", callback_data=ModelMenuOption(action=ModelMenuBtns.DETAILS))
-    kb.button(text="📋 Требования к фото", callback_data=ModelMenuOption(action=ModelMenuBtns.PHOTO_REQUIREMENTS))
+    kb.button(
+        text="📋 Требования к фото", callback_data=ModelMenuOption(action=ModelMenuBtns.REQUIREMENTS_BEFORE_PAYMENT)
+    )
     kb.button(text="📝 Часто задаваемые вопросы", url="https://staisupov.ru/mod#rec1237052556")
     kb.button(text="Перейти к  оплате", callback_data="payment")
     kb.adjust(1)
@@ -114,7 +116,9 @@ def get_requirements_kb():
 
 def get_details_kb():
     kb = InlineKeyboardBuilder()
-    kb.button(text="📋 Требования к фото", callback_data=ModelMenuOption(action=ModelMenuBtns.PHOTO_REQUIREMENTS))
+    kb.button(
+        text="📋 Требования к фото", callback_data=ModelMenuOption(action=ModelMenuBtns.REQUIREMENTS_BEFORE_PAYMENT)
+    )
     kb.button(text="📝 Часто задаваемые вопросы", url="https://staisupov.ru/mod#rec1237052556")
     kb.button(text="Перейти к  оплате", callback_data="payment")
     kb.adjust(1)
@@ -130,7 +134,9 @@ def get_photo_buttons(chat_id: int):
 
 def get_rejected_photo_buttons():
     kb = InlineKeyboardBuilder()
-    kb.button(text="📋 Требования к фото", callback_data=ModelMenuOption(action=ModelMenuBtns.PHOTO_REQUIREMENTS_2))
+    kb.button(
+        text="📋 Требования к фото", callback_data=ModelMenuOption(action=ModelMenuBtns.REQUIREMENTS_AFTER_PAYMENT)
+    )
     kb.button(text="Оставить прежнее фото", callback_data=ModelMenuOption(action=ModelMenuBtns.KEEP_PHOTO))
     kb.adjust(1)
     return kb.as_markup()
@@ -139,7 +145,9 @@ def get_rejected_photo_buttons():
 def get_keep_rejected_photo_buttons():
     kb = InlineKeyboardBuilder()
     kb.button(text="Оставить прежнее фото", callback_data=ModelMenuOption(action=ModelMenuBtns.CONFIRM_KEEP_PHOTO))
-    kb.button(text="📋 Требования к фото", callback_data=ModelMenuOption(action=ModelMenuBtns.PHOTO_REQUIREMENTS_2))
+    kb.button(
+        text="📋 Требования к фото", callback_data=ModelMenuOption(action=ModelMenuBtns.REQUIREMENTS_AFTER_PAYMENT)
+    )
     kb.button(text="Загрузить новое фото", callback_data=ModelMenuOption(action=ModelMenuBtns.UPLOAD_NEW_PHOTO))
     kb.adjust(1)
     return kb.as_markup()
