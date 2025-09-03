@@ -28,6 +28,7 @@ async def model_menu_handler(
     callback: CallbackQuery, callback_data: ModelMenuOption, settings: Settings, state: FSMContext
 ):
     await callback.answer()
+    await callback.message.delete_reply_markup()
     data = await state.get_data()
     match callback_data.action:
         case ModelMenuBtns.UPLOAD_NEW_PHOTO:
@@ -41,7 +42,6 @@ async def model_menu_handler(
                 return
             await callback.message.answer(text=texts["keep_photo"], reply_markup=get_keep_rejected_photo_buttons())
         case ModelMenuBtns.CONFIRM_KEEP_PHOTO:
-            data = await state.get_data()
             doc_id = data.get("last_document")
             if not doc_id:
                 await callback.answer(
@@ -118,7 +118,7 @@ async def on_pre_checkout_query(pre_checkout_query: PreCheckoutQuery):
 
 
 @router.message(F.successful_payment)
-async def on_successful_payment(message: Message, state: FSMContext):
+async def on_successful_payment(message: Message, state: FSMContext, settings: Settings):
     await state.update_data(paid=True)
     await answer_with_photo(message=message, caption=texts["payment_success"], file_name="example_sending.jpg")
     name = (
@@ -126,7 +126,7 @@ async def on_successful_payment(message: Message, state: FSMContext):
         if message.from_user.username
         else message.from_user.full_name
     )
-    await message.bot.send_message(message.chat.id, texts["new_payment"].format(message.from_user.id, name))
+    await message.bot.send_message(settings.MODEL_CHAT_ID, texts["new_payment"].format(message.from_user.id, name))
 
 
 @router.message(F.photo)
@@ -135,16 +135,17 @@ async def on_photo(message: Message, state: FSMContext, settings: Settings):
         await moderator_reply_dispatch(message, settings)
         return
 
+    if message.media_group_id:
+        data = await state.get_data()
+        if data.get("last_media_group_id") == message.media_group_id:
+            return
+        await state.update_data(last_media_group_id=message.media_group_id)
+
     data = await state.get_data()
     if not data.get("paid", False):
         await message.answer(texts["not_paid_or_work_in_progress"])
         return
     await answer_with_photo(message=message, caption=texts["photo_low_quality"], file_name="example_sending.jpg")
-
-
-@router.message(F.text)
-async def admin_text_reply(message: Message, settings: Settings):
-    await moderator_reply_dispatch(message, settings)
 
 
 @router.message(F.document)
@@ -156,6 +157,12 @@ async def on_document(message: Message, state: FSMContext, settings: Settings):
     doc = message.document
     if not doc or (doc.mime_type not in image_types):
         return
+
+    if message.media_group_id:
+        data = await state.get_data()
+        if data.get("last_media_group_id") == message.media_group_id:
+            return
+        await state.update_data(last_media_group_id=message.media_group_id)
 
     data = await state.get_data()
     if not data.get("paid", False):
@@ -172,7 +179,15 @@ async def on_document(message: Message, state: FSMContext, settings: Settings):
         chat_id=settings.MODEL_CHAT_ID,
         document=doc.file_id,
         caption=f"<b>uid:{message.from_user.id}\n{name}</b>\n\n{user_caption}",
-        reply_markup=get_photo_buttons(chat_id=message.chat.id),
+        reply_markup=get_photo_buttons(chat_id=message.from_user.id),
     )
     await state.update_data(last_document=doc.file_id)
     await message.answer(texts["photo_sent"])
+
+
+@router.message(F.text)
+async def text_reply(message: Message, settings: Settings):
+    if message.from_user.id != settings.MODERATOR:
+        await message.answer(texts["no_photo_message"])
+        return
+    await moderator_reply_dispatch(message, settings)
