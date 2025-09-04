@@ -135,12 +135,6 @@ async def on_photo(message: Message, state: FSMContext, settings: Settings):
         await moderator_reply_dispatch(message, settings)
         return
 
-    if message.media_group_id:
-        data = await state.get_data()
-        if data.get("last_media_group_id") == message.media_group_id:
-            return
-        await state.update_data(last_media_group_id=message.media_group_id)
-
     data = await state.get_data()
     if not data.get("paid", False):
         await message.answer(texts["not_paid_or_work_in_progress"])
@@ -157,12 +151,6 @@ async def on_document(message: Message, state: FSMContext, settings: Settings):
     doc = message.document
     if not doc or (doc.mime_type not in image_types):
         return
-
-    if message.media_group_id:
-        data = await state.get_data()
-        if data.get("last_media_group_id") == message.media_group_id:
-            return
-        await state.update_data(last_media_group_id=message.media_group_id)
 
     data = await state.get_data()
     if not data.get("paid", False):
