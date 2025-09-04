@@ -1,5 +1,5 @@
 import logging
-
+from contextlib import suppress
 from urllib.parse import urlencode
 
 import aiogram.utils.formatting
@@ -187,8 +187,8 @@ async def ai_leonardo_handler(message: types.Message, ai_client: AIClient, setti
     if new_thread_id is None:
         new_thread_id = await ai_client.new_thread()
         await state.update_data(ai_thread_id=new_thread_id)
-
-    forwarded = await message.forward(settings.CHAT_LOG_ID)
+    with suppress(TelegramBadRequest):
+        forwarded = await message.forward(settings.CHAT_LOG_ID)
     messages_to_handle = forwarded if isinstance(forwarded, list) else [forwarded]
     global_ctx = get_global_context(message.bot, state.storage)
     global_data = await global_ctx.get_data()
@@ -209,7 +209,8 @@ async def ai_leonardo_handler(message: types.Message, ai_client: AIClient, setti
             return
         cleaned_response = refactor_string(response)
         msg_answer = await message.answer(cleaned_response, parse_mode=ParseMode.MARKDOWN_V2)
-        await msg_answer.forward(settings.CHAT_LOG_ID)
+        with suppress(TelegramBadRequest):
+            await msg_answer.forward(settings.CHAT_LOG_ID)
 
 
 @router.message(
