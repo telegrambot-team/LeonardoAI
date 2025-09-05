@@ -1,6 +1,6 @@
 import logging
 
-from openai import AsyncOpenAI, BadRequestError
+from openai import AsyncOpenAI
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +19,7 @@ class AIClient:
         return thread.id
 
     async def get_response(self, ai_thread_id: str, text: str) -> str | None:
-        with suppress(BadRequestError):
-            await self.client.beta.threads.messages.create(thread_id=ai_thread_id, role="user", content=text)
+        await self.client.beta.threads.messages.create(thread_id=ai_thread_id, role="user", content=text)
         run = await self.client.beta.threads.runs.create_and_poll(
             thread_id=ai_thread_id, assistant_id=self.assistant_id
         )
