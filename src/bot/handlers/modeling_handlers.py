@@ -1,10 +1,14 @@
+from contextlib import suppress
+
 from aiogram import F, Router
+from aiogram.exceptions import TelegramBadRequest
+from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.base import StorageKey
 from aiogram.types import CallbackQuery, LabeledPrice, Message, PreCheckoutQuery
 
 from bot.internal.controllers import answer_with_photo, moderator_reply_dispatch
-from bot.internal.enums import ModelMenuBtns, PhotoMenuBtns
+from bot.internal.enums import ModelMenuBtns, PhotoMenuBtns, StatesBot
 from bot.internal.lexicon import texts
 from bot.keyboards import (
     ModelMenuOption,
@@ -28,7 +32,9 @@ async def model_menu_handler(
     callback: CallbackQuery, callback_data: ModelMenuOption, settings: Settings, state: FSMContext
 ):
     await callback.answer()
-    await callback.message.delete_reply_markup()
+    await state.set_state(StatesBot.MODELLING)
+    with suppress(TelegramBadRequest):
+        await callback.message.delete_reply_markup()
     data = await state.get_data()
     match callback_data.action:
         case ModelMenuBtns.UPLOAD_NEW_PHOTO:
@@ -129,7 +135,7 @@ async def on_successful_payment(message: Message, state: FSMContext, settings: S
     await message.bot.send_message(settings.MODEL_CHAT_ID, texts["new_payment"].format(message.from_user.id, name))
 
 
-@router.message(F.photo)
+@router.message(F.photo, StateFilter(StatesBot.MODELLING))
 async def on_photo(message: Message, state: FSMContext, settings: Settings):
     if message.from_user.id == settings.MODERATOR:
         await moderator_reply_dispatch(message, settings)
@@ -142,7 +148,7 @@ async def on_photo(message: Message, state: FSMContext, settings: Settings):
     await answer_with_photo(message=message, caption=texts["photo_low_quality"], file_name="example_sending.jpg")
 
 
-@router.message(F.document)
+@router.message(F.document, StateFilter(StatesBot.MODELLING))
 async def on_document(message: Message, state: FSMContext, settings: Settings):
     if message.from_user.id == settings.MODERATOR:
         await moderator_reply_dispatch(message, settings)
@@ -173,7 +179,7 @@ async def on_document(message: Message, state: FSMContext, settings: Settings):
     await message.answer(texts["photo_sent"])
 
 
-@router.message(F.text)
+@router.message(F.text, StateFilter(StatesBot.MODELLING))
 async def text_reply(message: Message, settings: Settings):
     if message.from_user.id != settings.MODERATOR:
         await message.answer(texts["no_photo_message"])
