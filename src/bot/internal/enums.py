@@ -1,5 +1,12 @@
 from enum import IntEnum, auto
 
+from aiogram.fsm.state import State, StatesGroup
+
+
+class StatesBot(StatesGroup):
+    IN_AI_DIALOG = State()
+    MODELLING = State()
+
 
 class SurgeryMenuBtns(IntEnum):
     ANALYZE_LIST = auto()
@@ -35,12 +42,10 @@ class PhotoMenuBtns(IntEnum):
 
 
 class MainMenuBtns(IntEnum):
-    AI_LEONARDO = auto()
     MODELLING = auto()
     BEFORE_SURGERY = auto()
     ASK_QUESTION = auto()
     SCHEDULE_CONSULTATION = auto()
-    SCHEDULE_SURGERY = auto()
 
 
 class ModeratorMenuBtns(IntEnum):
