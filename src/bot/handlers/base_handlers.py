@@ -1,23 +1,37 @@
 import logging
 
+from contextlib import suppress
 from urllib.parse import urlencode
 
 import aiogram.utils.formatting
 import openai
 
-from aiogram import F, Router, types
+from aiogram import Router
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.filters import Command, CommandStart
+from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
+from aiogram.types import (
+    CallbackQuery,
+    FSInputFile,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    InputMediaPhoto,
+    Message,
+)
 from aiogram.utils.chat_action import ChatActionSender
 
 from ai_client import AIClient
 from bot.global_ctx import get_global_context
 from bot.handlers.consts import IMGS, TEXTS
-from bot.internal.enums import AfterSurgeryMenuBtns, AIMenuBtns, MainMenuBtns, ModeratorMenuBtns, SurgeryMenuBtns
+from bot.internal.enums import (
+    AfterSurgeryMenuBtns,
+    AIMenuBtns,
+    MainMenuBtns,
+    ModeratorMenuBtns,
+    StatesBot,
+    SurgeryMenuBtns,
+)
 from bot.internal.lexicon import texts
 from bot.keyboards import (
     AfterSurgeryMenuOption,
@@ -26,7 +40,6 @@ from bot.keyboards import (
     ModeratorMenuOption,
     SurgeryMenuOption,
     after_surgery_kbd,
-    ai_kbd,
     before_surgery_kbd,
     get_model_kb,
     start_kbd,
@@ -39,40 +52,21 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 
-class StatesBot(StatesGroup):
-    IN_AI_DIALOG = State()
-
-
-def get_start_text(full_name: str):
-    return (
-        aiogram.html.bold(f"Виртуальный доктор приветствует вас, {full_name}!\n\n")
-        + "Выполните команду /start чтобы в любой момент вернутся в главное меню."
-    )
-
-
 @router.message(CommandStart())
-async def start_message(message: types.Message, state: FSMContext, settings) -> None:
-    await state.set_state()
+async def start_message(message: Message, state: FSMContext, settings) -> None:
+    await state.set_state(StatesBot.IN_AI_DIALOG)
     kb = start_moderator_kbd if message.from_user.id == settings.MODERATOR else start_kbd
-    await message.answer(get_start_text(message.from_user.full_name), reply_markup=kb)
+    await message.answer(texts["start_text"], reply_markup=kb)
 
 
 @router.message(Command("model"))
-async def model_message(message: types.Message):
-    await message.answer(texts["welcome"], reply_markup=get_model_kb())
-
-
-@router.callback_query(MainMenuOption.filter(F.action == MainMenuBtns.AI_LEONARDO))
-async def ai_leonardo_handler_start(callback: types.CallbackQuery, state: FSMContext):
-    await state.set_state(StatesBot.IN_AI_DIALOG)
-    await callback.message.edit_text(
-        "Напишите своё сообщение в чат чтобы продолжить диалог, или начните новый диалог нажав на кнопку ниже",
-        reply_markup=ai_kbd,
-    )
+async def model_message(message: Message, state: FSMContext):
+    await state.set_state(StatesBot.MODELLING)
+    await message.answer(texts["modeling_welcome"], reply_markup=get_model_kb())
 
 
 @router.callback_query(MainMenuOption.filter())
-async def main_menu_handler(callback: types.CallbackQuery, callback_data: MainMenuOption):
+async def main_menu_handler(callback: CallbackQuery, callback_data: MainMenuOption, state: FSMContext):
     await callback.answer()
     back_kbd = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -81,50 +75,57 @@ async def main_menu_handler(callback: types.CallbackQuery, callback_data: MainMe
     )
     match callback_data.action:
         case MainMenuBtns.BEFORE_SURGERY:
-            await callback.message.edit_text("Рекомендации перед и после операции", reply_markup=before_surgery_kbd)
+            await state.set_state(StatesBot.IN_AI_DIALOG)
+            with suppress(TelegramBadRequest):
+                await callback.message.edit_text(
+                    "Рекомендации перед и после операции", reply_markup=before_surgery_kbd
+                )
         case MainMenuBtns.ASK_QUESTION:
-            await callback.message.edit_text(
-                "Вы можете задать вопрос написав мне в телеграме: @StaisupovValeri\n\n"
-                "Или в вотсапе : https://wa.me/79313009933",
-                reply_markup=back_kbd,
-            )
+            await state.set_state(StatesBot.IN_AI_DIALOG)
+            with suppress(TelegramBadRequest):
+                await callback.message.edit_text(
+                    "Вы можете задать вопрос написав мне в телеграме: @StaisupovValeri\n\n"
+                    "Или в вотсапе : https://wa.me/79313009933",
+                    reply_markup=back_kbd,
+                )
         case MainMenuBtns.SCHEDULE_CONSULTATION:
+            await state.set_state(StatesBot.IN_AI_DIALOG)
             link = f"https://wa.me/79213713864?{
-                urlencode({'text': 'Здравствуйте! Я хочу записаться на консультацию к Стайсупову Валерию Юрьевичу.'})
+                urlencode({'text': 'Здравствуйте! Я хочу записаться к доктору Стайсупову Валерию Юрьевичу.'})
             }"
             escaped_link = aiogram.html.link("ссылке", link)
-            await callback.message.edit_text(
-                f"Вы можете записаться на консультацию в WhatsApp по {escaped_link}\n\n"
-                f""
-                f"Или по телефону: +7-812-403-02-01",
-                reply_markup=back_kbd,
-            )
-        case MainMenuBtns.SCHEDULE_SURGERY:
-            link = f"https://wa.me/79213713864?{urlencode({'text': 'Здравствуйте! Я хочу записаться на операцию к Стайсупову Валерию Юрьевичу.'})}"
-            escaped_link = aiogram.html.link("ссылке", link)
-            await callback.message.edit_text(
-                f"Вы можете записаться на операцию в WhatsApp по {escaped_link}\n\nИли по телефону: +7-812-403-02-01",
-                reply_markup=back_kbd,
-            )
+            with suppress(TelegramBadRequest):
+                await callback.message.edit_text(
+                    f"Вы можете записаться к доктору в WhatsApp по {escaped_link}\n\n"
+                    "Или через личного администратора\n"
+                    "Whats App, Telegram: +7-931-330-88-33",
+                    reply_markup=back_kbd,
+                )
         case MainMenuBtns.MODELLING:
-            await callback.message.answer(texts["welcome"], reply_markup=get_model_kb())
+            await state.set_state(StatesBot.MODELLING)
+            await callback.message.answer(texts["modeling_welcome"], reply_markup=get_model_kb())
 
 
 @router.callback_query(SurgeryMenuOption.filter())
-async def analyze_list_handler(callback: types.CallbackQuery, callback_data: SurgeryMenuOption, settings) -> None:
+async def analyze_list_handler(
+    callback: CallbackQuery, callback_data: SurgeryMenuOption, settings, state: FSMContext
+) -> None:
     match callback_data.action:
         case SurgeryMenuBtns.ANALYZE_LIST:
             fname = "data/Список Анализов.pdf"
             await callback.message.answer_document(FSInputFile(path=fname))
         case SurgeryMenuBtns.MEDICINE_AFTER:
-            await callback.message.edit_text("Лекарства после операции", reply_markup=after_surgery_kbd)
+            with suppress(TelegramBadRequest):
+                await callback.message.edit_text("Лекарства после операции", reply_markup=after_surgery_kbd)
         case SurgeryMenuBtns.BACK:
             kb = start_moderator_kbd if callback.from_user.id == settings.MODERATOR else start_kbd
-            await callback.message.edit_text(get_start_text(callback.from_user.full_name), reply_markup=kb)
+            await state.set_state(StatesBot.IN_AI_DIALOG)
+            with suppress(TelegramBadRequest):
+                await callback.message.edit_text(texts["start_text"], reply_markup=kb)
 
 
 @router.callback_query(AfterSurgeryMenuOption.filter())
-async def after_surgery_handler(callback: types.CallbackQuery, callback_data: AfterSurgeryMenuOption):
+async def after_surgery_handler(callback: CallbackQuery, callback_data: AfterSurgeryMenuOption):
     if callback_data.action == AfterSurgeryMenuBtns.BACK:
         await callback.message.answer("Рекомендации перед и после операции", reply_markup=before_surgery_kbd)
         await callback.message.delete()
@@ -144,12 +145,13 @@ async def after_surgery_handler(callback: types.CallbackQuery, callback_data: Af
 
 @router.callback_query(AIMenuOption.filter())
 async def ai_menu_handler(
-    callback: types.CallbackQuery, ai_client: AIClient, state: FSMContext, callback_data: AIMenuOption, settings
+    callback: CallbackQuery, ai_client: AIClient, state: FSMContext, callback_data: AIMenuOption, settings
 ) -> None:
     if callback_data.action == AIMenuBtns.BACK:
         await state.set_state()
         kb = start_moderator_kbd if callback.from_user.id == settings.MODERATOR else start_kbd
-        await callback.message.edit_text(get_start_text(callback.from_user.full_name), reply_markup=kb)
+        with suppress(TelegramBadRequest):
+            await callback.message.edit_text(texts["start_text"], reply_markup=kb)
         return
 
     data = await state.get_data()
@@ -167,7 +169,7 @@ async def ai_menu_handler(
 
 @router.callback_query(ModeratorMenuOption.filter())
 async def moderator_menu_handler(
-    callback: types.CallbackQuery, callback_data: ModeratorMenuOption, state: FSMContext, settings
+    callback: CallbackQuery, callback_data: ModeratorMenuOption, state: FSMContext, settings
 ) -> None:
     if callback.from_user.id != settings.MODERATOR:
         await callback.answer("Недостаточно прав", show_alert=True)
@@ -176,18 +178,18 @@ async def moderator_menu_handler(
     if callback_data.action == ModeratorMenuBtns.CLEAR_CONTEXTS:
         await state.storage.redis.flushdb()
         await state.set_state()
-        await callback.message.edit_text("Контекст всех пользователей очищен.", reply_markup=start_moderator_kbd)
+        with suppress(TelegramBadRequest):
+            await callback.message.edit_text("Контекст всех пользователей очищен.", reply_markup=start_moderator_kbd)
 
 
-@router.message(StatesBot.IN_AI_DIALOG)
-async def ai_leonardo_handler(message: types.Message, ai_client: AIClient, settings, state: FSMContext):
+@router.message(StateFilter(StatesBot.IN_AI_DIALOG))
+async def ai_leonardo_handler(message: Message, ai_client: AIClient, settings, state: FSMContext):
     logger.info("Processing user message %s from %s", message.message_id, message.from_user.id)
     data = await state.get_data()
     new_thread_id = data.get("ai_thread_id", None)
     if new_thread_id is None:
         new_thread_id = await ai_client.new_thread()
         await state.update_data(ai_thread_id=new_thread_id)
-
     forwarded = await message.forward(settings.CHAT_LOG_ID)
     messages_to_handle = forwarded if isinstance(forwarded, list) else [forwarded]
     global_ctx = get_global_context(message.bot, state.storage)
@@ -209,7 +211,8 @@ async def ai_leonardo_handler(message: types.Message, ai_client: AIClient, setti
             return
         cleaned_response = refactor_string(response)
         msg_answer = await message.answer(cleaned_response, parse_mode=ParseMode.MARKDOWN_V2)
-        await msg_answer.forward(settings.CHAT_LOG_ID)
+        with suppress(TelegramBadRequest):
+            await msg_answer.forward(settings.CHAT_LOG_ID)
 
 
 @router.message(
@@ -217,7 +220,7 @@ async def ai_leonardo_handler(message: types.Message, ai_client: AIClient, setti
     lambda message, settings: message.from_user.id == settings.MODERATOR,
     lambda message: bool(message.reply_to_message),
 )
-async def moderator_reply_handler(message: types.Message, state: FSMContext) -> None:
+async def moderator_reply_handler(message: Message, state: FSMContext) -> None:
     """Forward moderator replies from log chat to the original user."""
     logger.info("Processing moderator reply %s to %s", message.message_id, message.reply_to_message.message_id)
 
