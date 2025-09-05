@@ -43,15 +43,11 @@ class ModeratorMenuOption(CallbackData, prefix="moderator_menu"):
 
 def _build_start_kbd(*, is_moderator: bool = False):
     kb = InlineKeyboardBuilder()
-    kb.button(text="Разговор с моей цифровой копией", callback_data=MainMenuOption(action=MainMenuBtns.AI_LEONARDO))
     kb.button(text="Услуга моделирования", callback_data=MainMenuOption(action=MainMenuBtns.MODELLING))
     kb.button(text="Перед операцией", callback_data=MainMenuOption(action=MainMenuBtns.BEFORE_SURGERY))
     kb.button(text="Задать вопрос доктору", callback_data=MainMenuOption(action=MainMenuBtns.ASK_QUESTION))
-    kb.button(
-        text="Записаться на консультацию", callback_data=MainMenuOption(action=MainMenuBtns.SCHEDULE_CONSULTATION)
-    )
-    kb.button(text="Записаться на операцию", callback_data=MainMenuOption(action=MainMenuBtns.SCHEDULE_SURGERY))
-    kb.adjust(1, 2, 2)
+    kb.button(text="Записаться к доктору", callback_data=MainMenuOption(action=MainMenuBtns.SCHEDULE_CONSULTATION))
+    kb.adjust(1)
     if is_moderator:
         kb.button(text="Очистить контекст", callback_data=ModeratorMenuOption(action=ModeratorMenuBtns.CLEAR_CONTEXTS))
         kb.adjust(1)
