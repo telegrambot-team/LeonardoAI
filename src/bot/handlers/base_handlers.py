@@ -1,5 +1,6 @@
 import logging
 
+from asyncio import sleep
 from contextlib import suppress
 from urllib.parse import urlencode
 
@@ -9,7 +10,7 @@ import openai
 from aiogram import Router
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.filters import Command, CommandStart, StateFilter
+from aiogram.filters import CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import (
     CallbackQuery,
@@ -41,11 +42,11 @@ from bot.keyboards import (
     SurgeryMenuOption,
     after_surgery_kbd,
     before_surgery_kbd,
-    get_model_kb,
     start_kbd,
     start_moderator_kbd,
 )
 from bot.md_utils import refactor_string
+from config import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -57,12 +58,8 @@ async def start_message(message: Message, state: FSMContext, settings) -> None:
     await state.set_state(StatesBot.IN_AI_DIALOG)
     kb = start_moderator_kbd if message.from_user.id == settings.MODERATOR else start_kbd
     await message.answer(texts["start_text"], reply_markup=kb)
-
-
-@router.message(Command("model"))
-async def model_message(message: Message, state: FSMContext):
-    await state.set_state(StatesBot.MODELLING)
-    await message.answer(texts["modeling_welcome"], reply_markup=get_model_kb())
+    await sleep(1)
+    await message.answer(texts["hello_text"])
 
 
 @router.callback_query(MainMenuOption.filter())
@@ -76,58 +73,47 @@ async def main_menu_handler(callback: CallbackQuery, callback_data: MainMenuOpti
     match callback_data.action:
         case MainMenuBtns.BEFORE_SURGERY:
             await state.set_state(StatesBot.IN_AI_DIALOG)
-            with suppress(TelegramBadRequest):
-                await callback.message.edit_text(
-                    "Рекомендации перед и после операции", reply_markup=before_surgery_kbd
-                )
-        case MainMenuBtns.ASK_QUESTION:
-            await state.set_state(StatesBot.IN_AI_DIALOG)
-            with suppress(TelegramBadRequest):
-                await callback.message.edit_text(
-                    "Вы можете задать вопрос написав мне в телеграме: @StaisupovValeri\n\n"
-                    "Или в вотсапе : https://wa.me/79313009933",
-                    reply_markup=back_kbd,
-                )
+            await callback.message.edit_text("Рекомендации перед и после операции", reply_markup=before_surgery_kbd)
         case MainMenuBtns.SCHEDULE_CONSULTATION:
             await state.set_state(StatesBot.IN_AI_DIALOG)
             link = f"https://wa.me/79213713864?{
                 urlencode({'text': 'Здравствуйте! Я хочу записаться к доктору Стайсупову Валерию Юрьевичу.'})
             }"
             escaped_link = aiogram.html.link("ссылке", link)
-            with suppress(TelegramBadRequest):
-                await callback.message.edit_text(
-                    f"Вы можете записаться к доктору в WhatsApp по {escaped_link}\n\n"
-                    "Или через личного администратора\n"
-                    "Whats App, Telegram: +7-931-330-88-33",
-                    reply_markup=back_kbd,
-                )
-        case MainMenuBtns.MODELLING:
-            await state.set_state(StatesBot.MODELLING)
-            await callback.message.answer(texts["modeling_welcome"], reply_markup=get_model_kb())
+            await callback.message.edit_text(
+                f"Вы можете записаться к доктору в WhatsApp по {escaped_link}\n\n"
+                "Или через личного администратора\n"
+                "Whats App, Telegram: +7-931-330-88-33",
+                reply_markup=back_kbd,
+            )
 
 
 @router.callback_query(SurgeryMenuOption.filter())
 async def analyze_list_handler(
     callback: CallbackQuery, callback_data: SurgeryMenuOption, settings, state: FSMContext
 ) -> None:
+    await callback.answer()
     match callback_data.action:
         case SurgeryMenuBtns.ANALYZE_LIST:
             fname = "data/Список Анализов.pdf"
             await callback.message.answer_document(FSInputFile(path=fname))
         case SurgeryMenuBtns.MEDICINE_AFTER:
-            with suppress(TelegramBadRequest):
-                await callback.message.edit_text("Лекарства после операции", reply_markup=after_surgery_kbd)
+            await callback.message.edit_text("Лекарства после операции", reply_markup=after_surgery_kbd)
         case SurgeryMenuBtns.BACK:
             kb = start_moderator_kbd if callback.from_user.id == settings.MODERATOR else start_kbd
             await state.set_state(StatesBot.IN_AI_DIALOG)
-            with suppress(TelegramBadRequest):
-                await callback.message.edit_text(texts["start_text"], reply_markup=kb)
+            await callback.message.edit_text(texts["start_text"], reply_markup=kb)
 
 
 @router.callback_query(AfterSurgeryMenuOption.filter())
-async def after_surgery_handler(callback: CallbackQuery, callback_data: AfterSurgeryMenuOption):
+async def after_surgery_handler(
+    callback: CallbackQuery, callback_data: AfterSurgeryMenuOption, state: FSMContext, settings: Settings
+):
+    await callback.answer()
     if callback_data.action == AfterSurgeryMenuBtns.BACK:
-        await callback.message.answer("Рекомендации перед и после операции", reply_markup=before_surgery_kbd)
+        await state.set_state(StatesBot.IN_AI_DIALOG)
+        kb = start_moderator_kbd if callback.from_user.id == settings.MODERATOR else start_kbd
+        await callback.message.answer(texts["start_text"], reply_markup=kb)
         await callback.message.delete()
         return
 
@@ -147,11 +133,11 @@ async def after_surgery_handler(callback: CallbackQuery, callback_data: AfterSur
 async def ai_menu_handler(
     callback: CallbackQuery, ai_client: AIClient, state: FSMContext, callback_data: AIMenuOption, settings
 ) -> None:
+    await callback.answer()
     if callback_data.action == AIMenuBtns.BACK:
         await state.set_state()
         kb = start_moderator_kbd if callback.from_user.id == settings.MODERATOR else start_kbd
-        with suppress(TelegramBadRequest):
-            await callback.message.edit_text(texts["start_text"], reply_markup=kb)
+        await callback.message.edit_text(texts["start_text"], reply_markup=kb)
         return
 
     data = await state.get_data()
@@ -171,6 +157,7 @@ async def ai_menu_handler(
 async def moderator_menu_handler(
     callback: CallbackQuery, callback_data: ModeratorMenuOption, state: FSMContext, settings
 ) -> None:
+    await callback.answer()
     if callback.from_user.id != settings.MODERATOR:
         await callback.answer("Недостаточно прав", show_alert=True)
         return
@@ -178,8 +165,7 @@ async def moderator_menu_handler(
     if callback_data.action == ModeratorMenuBtns.CLEAR_CONTEXTS:
         await state.storage.redis.flushdb()
         await state.set_state()
-        with suppress(TelegramBadRequest):
-            await callback.message.edit_text("Контекст всех пользователей очищен.", reply_markup=start_moderator_kbd)
+        await callback.message.edit_text("Контекст всех пользователей очищен.", reply_markup=start_moderator_kbd)
 
 
 @router.message(StateFilter(StatesBot.IN_AI_DIALOG))
