@@ -21,7 +21,6 @@ from config import Settings, get_logging_config
 
 logger = logging.getLogger(__name__)
 
-
 async def set_bot_commands(bot: Bot) -> None:
     default_commands = [BotCommand(command="/start", description="Главное меню")]
     await bot.set_my_commands(default_commands)
