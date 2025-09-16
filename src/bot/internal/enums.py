@@ -5,7 +5,6 @@ from aiogram.fsm.state import State, StatesGroup
 
 class StatesBot(StatesGroup):
     IN_AI_DIALOG = State()
-    MODELLING = State()
 
 
 class SurgeryMenuBtns(IntEnum):
@@ -27,24 +26,9 @@ class AIMenuBtns(IntEnum):
     BACK = auto()
 
 
-class ModelMenuBtns(IntEnum):
-    UPLOAD_NEW_PHOTO = auto()
-    KEEP_PHOTO = auto()
-    CONFIRM_KEEP_PHOTO = auto()
-    REQUIREMENTS_BEFORE_PAYMENT = auto()
-    REQUIREMENTS_AFTER_PAYMENT = auto()
-    DETAILS = auto()
-
-
-class PhotoMenuBtns(IntEnum):
-    ACCEPT = auto()
-    DECLINE = auto()
-
-
 class MainMenuBtns(IntEnum):
     MODELLING = auto()
     BEFORE_SURGERY = auto()
-    ASK_QUESTION = auto()
     SCHEDULE_CONSULTATION = auto()
 
 
