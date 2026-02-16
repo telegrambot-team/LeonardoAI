@@ -2,6 +2,8 @@ from pathlib import Path
 
 from aiogram.types import FSInputFile, InlineKeyboardMarkup, Message
 
+_INTERNAL_FILES_DIR = Path(__file__).resolve().parent
+
 
 def _extract_uid_from_reply(reply: Message) -> int | None:
     if not reply or not reply.caption:
@@ -48,7 +50,5 @@ async def answer_with_photo(
     message: Message, caption: str, file_name: str, markup: InlineKeyboardMarkup | None = None
 ):
     await message.answer_photo(
-        photo=FSInputFile(str(Path(__file__).resolve().parents[1] / "internal" / file_name)),
-        caption=caption,
-        reply_markup=markup,
+        photo=FSInputFile(str(_INTERNAL_FILES_DIR / file_name)), caption=caption, reply_markup=markup
     )

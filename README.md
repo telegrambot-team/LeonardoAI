@@ -18,7 +18,7 @@ pip install -Ue .
 
 3. Create `.env` file and fill it with needed variables. You can copy it from `example.env`
 
-4. Run postgres database. You can use `docker-compose.yml` in the repo root.
+4. Run redis. You can use `compose.yml` in the repo root.
 
 ```
 docker compose up -d
