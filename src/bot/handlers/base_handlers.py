@@ -200,12 +200,7 @@ async def _track_forwarded_user_message(message: Message, settings: Settings, st
 
 
 async def _get_response_with_recovery(
-    *,
-    ai_client: AIClient,
-    conversation_id: str,
-    user_text: str,
-    user_id: str,
-    state: FSMContext,
+    *, ai_client: AIClient, conversation_id: str, user_text: str, user_id: str, state: FSMContext
 ) -> tuple[str | None, bool]:
     try:
         response = await ai_client.get_response(conversation_id, user_text, user_id=user_id)
