@@ -6,7 +6,7 @@ from urllib.parse import urlencode
 
 import openai
 
-from aiogram import Router
+from aiogram import Router, html
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import CommandStart, StateFilter
@@ -45,6 +45,7 @@ from bot.keyboards import (
     start_moderator_kbd,
 )
 from bot.md_utils import refactor_string
+from bot.telegram_safe import safe_delete_message, safe_edit_media, safe_edit_text
 from config import Settings
 
 logger = logging.getLogger(__name__)
@@ -72,14 +73,16 @@ async def main_menu_handler(callback: CallbackQuery, callback_data: MainMenuOpti
     match callback_data.action:
         case MainMenuBtns.BEFORE_SURGERY:
             await state.set_state(StatesBot.IN_AI_DIALOG)
-            await callback.message.edit_text("Рекомендации перед и после операции", reply_markup=before_surgery_kbd)
+            await safe_edit_text(
+                callback.message, "Рекомендации перед и после операции", reply_markup=before_surgery_kbd
+            )
         case MainMenuBtns.SCHEDULE_CONSULTATION:
             await state.set_state(StatesBot.IN_AI_DIALOG)
-            link = f"https://wa.me/79213713864?{
-                urlencode({'text': 'Здравствуйте! Я хочу записаться к доктору Стайсупову Валерию Юрьевичу.'})
-            }"
-            escaped_link = aiogram.html.link("ссылке", link)
-            await callback.message.edit_text(
+            whatsapp_text = "Здравствуйте! Я хочу записаться к доктору Стайсупову Валерию Юрьевичу."
+            link = f"https://wa.me/79213713864?{urlencode({'text': whatsapp_text})}"
+            escaped_link = html.link("ссылке", link)
+            await safe_edit_text(
+                callback.message,
                 f"Вы можете записаться к доктору в WhatsApp по {escaped_link}\n\n"
                 "Или через личного администратора\n"
                 "Whats App, Telegram: +7-931-330-88-33",
@@ -97,11 +100,11 @@ async def analyze_list_handler(
             fname = "data/Список Анализов.pdf"
             await callback.message.answer_document(FSInputFile(path=fname))
         case SurgeryMenuBtns.MEDICINE_AFTER:
-            await callback.message.edit_text("Лекарства после операции", reply_markup=after_surgery_kbd)
+            await safe_edit_text(callback.message, "Лекарства после операции", reply_markup=after_surgery_kbd)
         case SurgeryMenuBtns.BACK:
             kb = start_moderator_kbd if callback.from_user.id == settings.MODERATOR else start_kbd
             await state.set_state(StatesBot.IN_AI_DIALOG)
-            await callback.message.edit_text(texts["start_text"], reply_markup=kb)
+            await safe_edit_text(callback.message, texts["start_text"], reply_markup=kb)
 
 
 @router.callback_query(AfterSurgeryMenuOption.filter())
@@ -113,13 +116,13 @@ async def after_surgery_handler(
         await state.set_state(StatesBot.IN_AI_DIALOG)
         kb = start_moderator_kbd if callback.from_user.id == settings.MODERATOR else start_kbd
         await callback.message.answer(texts["start_text"], reply_markup=kb)
-        await callback.message.delete()
+        await safe_delete_message(callback.message)
         return
 
     try:
         photo = InputMediaPhoto(media=IMGS[callback_data.action], caption=TEXTS[callback_data.action])
         try:
-            await callback.message.edit_media(photo, reply_markup=after_surgery_kbd)
+            await safe_edit_media(callback.message, photo, reply_markup=after_surgery_kbd)
         except TelegramBadRequest:
             await callback.message.answer_photo(
                 IMGS[callback_data.action], caption=TEXTS[callback_data.action], reply_markup=after_surgery_kbd
@@ -136,7 +139,7 @@ async def ai_menu_handler(
     if callback_data.action == AIMenuBtns.BACK:
         await state.set_state()
         kb = start_moderator_kbd if callback.from_user.id == settings.MODERATOR else start_kbd
-        await callback.message.edit_text(texts["start_text"], reply_markup=kb)
+        await safe_edit_text(callback.message, texts["start_text"], reply_markup=kb)
         return
 
     data = await state.get_data()
@@ -164,7 +167,9 @@ async def moderator_menu_handler(
     if callback_data.action == ModeratorMenuBtns.CLEAR_CONTEXTS:
         await state.storage.redis.flushdb()
         await state.set_state()
-        await callback.message.edit_text("Контекст всех пользователей очищен.", reply_markup=start_moderator_kbd)
+        await safe_edit_text(
+            callback.message, "Контекст всех пользователей очищен.", reply_markup=start_moderator_kbd
+        )
 
 
 @router.message(StateFilter(StatesBot.IN_AI_DIALOG))
@@ -175,9 +180,10 @@ async def ai_leonardo_handler(message: Message, ai_client: AIClient, settings, s
     if not conversation_id:
         conversation_id = await ai_client.new_conversation()
         await state.update_data(ai_conversation_id=conversation_id, ai_thread_id=None)
-    if not message.text:
+    if not message.text or not message.text.strip():
         await message.answer("Пожалуйста, отправьте текстовый вопрос.")
         return
+    user_text = message.text.strip()
     forwarded = await message.forward(settings.CHAT_LOG_ID)
     messages_to_handle = forwarded if isinstance(forwarded, list) else [forwarded]
     global_ctx = get_global_context(message.bot, state.storage)
@@ -188,12 +194,18 @@ async def ai_leonardo_handler(message: Message, ai_client: AIClient, settings, s
     await global_ctx.update_data(log_user_message_map=log_user_message_map)
     async with ChatActionSender.typing(bot=message.bot, chat_id=message.chat.id):
         try:
-            response = await ai_client.get_response(conversation_id, message.text, user_id=str(message.from_user.id))
+            response = await ai_client.get_response(conversation_id, user_text, user_id=str(message.from_user.id))
         except openai.NotFoundError:
             logger.warning("Conversation %s not found", conversation_id)
             conversation_id = await ai_client.new_conversation()
             await state.update_data(ai_conversation_id=conversation_id, ai_thread_id=None)
-            response = await ai_client.get_response(conversation_id, message.text, user_id=str(message.from_user.id))
+            response = await ai_client.get_response(conversation_id, user_text, user_id=str(message.from_user.id))
+        except openai.BadRequestError as exc:
+            logger.warning("OpenAI BadRequestError for user %s: %s", message.from_user.id, exc)
+            conversation_id = await ai_client.new_conversation()
+            await state.update_data(ai_conversation_id=conversation_id, ai_thread_id=None)
+            await message.answer("Не получилось обработать запрос. Попробуйте ещё раз или переформулируйте вопрос.")
+            return
 
         if response is None:
             await message.answer("Извините, я отвлекся, давайте начнём новый разговор 🙈")
