@@ -10,6 +10,10 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import SimpleEventIsolation
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.types import BotCommand
+from redis.asyncio.retry import Retry
+from redis.backoff import ExponentialBackoff
+from redis.exceptions import ConnectionError as RedisConnectionError
+from redis.exceptions import TimeoutError as RedisTimeoutError
 
 from ai_client import AIClient
 from bot.global_ctx import init_global
@@ -37,7 +41,18 @@ async def main():
 
     bot = Bot(token=settings.BOT_TOKEN.get_secret_value(), default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     logger.info("bot started")
-    storage = RedisStorage.from_url(settings.REDIS_URL.unicode_string())
+    storage = RedisStorage.from_url(
+        settings.REDIS_URL.unicode_string(),
+        connection_kwargs={
+            "health_check_interval": 30,
+            "retry": Retry(ExponentialBackoff(), retries=3),
+            "retry_on_error": [RedisConnectionError, RedisTimeoutError],
+            "retry_on_timeout": True,
+            "socket_connect_timeout": 5,
+            "socket_keepalive": True,
+            "socket_timeout": 5,
+        },
+    )
 
     ai_client = AIClient(settings.OPENAI_API_KEY.get_secret_value(), settings.ASSISTANT_ID.get_secret_value())
     await init_global(storage, bot)
