@@ -56,10 +56,7 @@ async def _try_reconnect_redis(dispatcher: aiogram.Dispatcher | None) -> bool:
 
 @router.errors()
 async def error_handler(
-    error_event: "ErrorEvent",
-    bot: aiogram.Bot,
-    settings: Settings,
-    dispatcher: aiogram.Dispatcher | None = None,
+    error_event: "ErrorEvent", bot: aiogram.Bot, settings: Settings, dispatcher: aiogram.Dispatcher | None = None
 ) -> None:
     exception = error_event.exception
 
@@ -92,6 +89,6 @@ async def error_handler(
         f"🚨 <b>An error occurred</b> 🚨\n\n"
         f"<b>Type:</b> {exc_name}\n<b>Message:</b> {exc_message}\n\n<b>Traceback:</b>\n<code>{tb}</code>"
     )
-    logger.exception("Unhandled exception", exc_info=exception)
+    logger.exception("Unhandled exception", exc_info=(type(exception), exception, exception.__traceback__))
 
     await bot.send_message(settings.ADMIN, error_message, disable_notification=True)
