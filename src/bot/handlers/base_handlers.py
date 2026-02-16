@@ -79,7 +79,7 @@ async def main_menu_handler(callback: CallbackQuery, callback_data: MainMenuOpti
         case MainMenuBtns.SCHEDULE_CONSULTATION:
             await state.set_state(StatesBot.IN_AI_DIALOG)
             whatsapp_text = "Здравствуйте! Я хочу записаться к доктору Стайсупову Валерию Юрьевичу."
-            link = f"https://wa.me/79213713864?{urlencode({'text': whatsapp_text})}"
+            link = "https://wa.me/79213713864?" + urlencode({"text": whatsapp_text})
             escaped_link = html.link("ссылке", link)
             await safe_edit_text(
                 callback.message,
