@@ -1,4 +1,6 @@
-import typing
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import asyncio
 import logging
@@ -6,14 +8,9 @@ import traceback
 
 from contextlib import suppress
 
-import aiogram
-
-from aiogram import Router, html
-from aiogram.exceptions import TelegramAPIError
-from aiogram.exceptions import TelegramBadRequest
-from redis.exceptions import ConnectionError as RedisConnectionError
-from redis.exceptions import RedisError
-from redis.exceptions import TimeoutError as RedisTimeoutError
+from aiogram import Bot, Dispatcher, Router, html
+from aiogram.exceptions import TelegramAPIError, TelegramBadRequest
+from redis.exceptions import ConnectionError as RedisConnectionError, RedisError, TimeoutError as RedisTimeoutError
 
 from config import Settings
 
@@ -22,13 +19,13 @@ logger = logging.getLogger(__name__)
 REDIS_RECONNECT_ATTEMPTS = 3
 REDIS_RECONNECT_BACKOFF_SECONDS = 0.2
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from aiogram.types.error_event import ErrorEvent
 
 router = Router()
 
 
-async def _try_reconnect_redis(dispatcher: aiogram.Dispatcher | None) -> bool:
+async def _try_reconnect_redis(dispatcher: Dispatcher | None) -> bool:
     if dispatcher is None:
         return False
 
@@ -56,7 +53,7 @@ async def _try_reconnect_redis(dispatcher: aiogram.Dispatcher | None) -> bool:
 
 @router.errors()
 async def error_handler(
-    error_event: "ErrorEvent", bot: aiogram.Bot, settings: Settings, dispatcher: aiogram.Dispatcher | None = None
+    error_event: ErrorEvent, bot: Bot, settings: Settings, dispatcher: Dispatcher | None = None
 ) -> None:
     exception = error_event.exception
 
@@ -70,7 +67,7 @@ async def error_handler(
             logger.debug("Ignoring TelegramBadRequest: %s", exception)
             return
 
-    if isinstance(exception, (RedisConnectionError, RedisTimeoutError)):
+    if isinstance(exception, RedisConnectionError | RedisTimeoutError):
         with suppress(TelegramAPIError):
             if error_event.update.callback_query:
                 await error_event.update.callback_query.answer()

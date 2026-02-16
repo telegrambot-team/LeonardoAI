@@ -52,6 +52,8 @@ logger = logging.getLogger(__name__)
 
 router = Router()
 
+BAD_OPENAI_REQUEST_MESSAGE = "Не получилось обработать запрос. Попробуйте ещё раз или переформулируйте вопрос."
+
 
 @router.message(CommandStart())
 async def start_message(message: Message, state: FSMContext, settings) -> None:
@@ -170,39 +172,82 @@ async def moderator_menu_handler(
         await safe_edit_text(callback.message, "Контекст всех пользователей очищен.", reply_markup=start_moderator_kbd)
 
 
+async def _reset_conversation_id(state: FSMContext, ai_client: AIClient) -> str:
+    conversation_id = await ai_client.new_conversation()
+    await state.update_data(ai_conversation_id=conversation_id, ai_thread_id=None)
+    return conversation_id
+
+
+async def _ensure_conversation_id(state: FSMContext, ai_client: AIClient) -> str:
+    data = await state.get_data()
+    conversation_id = data.get("ai_conversation_id")
+    if conversation_id:
+        return conversation_id
+
+    return await _reset_conversation_id(state, ai_client)
+
+
+async def _track_forwarded_user_message(message: Message, settings: Settings, state: FSMContext) -> None:
+    forwarded = await message.forward(settings.CHAT_LOG_ID)
+    forwarded_messages = forwarded if isinstance(forwarded, list) else [forwarded]
+
+    global_ctx = get_global_context(message.bot, state.storage)
+    global_data = await global_ctx.get_data()
+    log_user_message_map: dict[str, int] = global_data.get("log_user_message_map", {})
+    for forwarded_message in forwarded_messages:
+        log_user_message_map[str(forwarded_message.message_id)] = message.from_user.id
+    await global_ctx.update_data(log_user_message_map=log_user_message_map)
+
+
+async def _get_response_with_recovery(
+    *,
+    ai_client: AIClient,
+    conversation_id: str,
+    user_text: str,
+    user_id: str,
+    state: FSMContext,
+) -> tuple[str | None, bool]:
+    try:
+        response = await ai_client.get_response(conversation_id, user_text, user_id=user_id)
+    except openai.NotFoundError:
+        logger.warning("Conversation %s not found", conversation_id)
+        conversation_id = await _reset_conversation_id(state, ai_client)
+        try:
+            response = await ai_client.get_response(conversation_id, user_text, user_id=user_id)
+        except openai.BadRequestError as exc:
+            logger.warning("OpenAI BadRequestError for user %s: %s", user_id, exc)
+            await _reset_conversation_id(state, ai_client)
+            return None, True
+    except openai.BadRequestError as exc:
+        logger.warning("OpenAI BadRequestError for user %s: %s", user_id, exc)
+        await _reset_conversation_id(state, ai_client)
+        return None, True
+
+    return response, False
+
+
 @router.message(StateFilter(StatesBot.IN_AI_DIALOG))
 async def ai_leonardo_handler(message: Message, ai_client: AIClient, settings, state: FSMContext):
     logger.info("Processing user message %s from %s", message.message_id, message.from_user.id)
-    data = await state.get_data()
-    conversation_id = data.get("ai_conversation_id")
-    if not conversation_id:
-        conversation_id = await ai_client.new_conversation()
-        await state.update_data(ai_conversation_id=conversation_id, ai_thread_id=None)
     if not message.text or not message.text.strip():
         await message.answer("Пожалуйста, отправьте текстовый вопрос.")
         return
+
     user_text = message.text.strip()
-    forwarded = await message.forward(settings.CHAT_LOG_ID)
-    messages_to_handle = forwarded if isinstance(forwarded, list) else [forwarded]
-    global_ctx = get_global_context(message.bot, state.storage)
-    global_data = await global_ctx.get_data()
-    log_user_message_map = global_data.get("log_user_message_map", {})
-    for msg in messages_to_handle:
-        log_user_message_map[msg.message_id] = message.from_user.id
-    await global_ctx.update_data(log_user_message_map=log_user_message_map)
+
+    conversation_id = await _ensure_conversation_id(state, ai_client)
+    await _track_forwarded_user_message(message, settings, state)
+
     async with ChatActionSender.typing(bot=message.bot, chat_id=message.chat.id):
-        try:
-            response = await ai_client.get_response(conversation_id, user_text, user_id=str(message.from_user.id))
-        except openai.NotFoundError:
-            logger.warning("Conversation %s not found", conversation_id)
-            conversation_id = await ai_client.new_conversation()
-            await state.update_data(ai_conversation_id=conversation_id, ai_thread_id=None)
-            response = await ai_client.get_response(conversation_id, user_text, user_id=str(message.from_user.id))
-        except openai.BadRequestError as exc:
-            logger.warning("OpenAI BadRequestError for user %s: %s", message.from_user.id, exc)
-            conversation_id = await ai_client.new_conversation()
-            await state.update_data(ai_conversation_id=conversation_id, ai_thread_id=None)
-            await message.answer("Не получилось обработать запрос. Попробуйте ещё раз или переформулируйте вопрос.")
+        response, bad_request = await _get_response_with_recovery(
+            ai_client=ai_client,
+            conversation_id=conversation_id,
+            user_text=user_text,
+            user_id=str(message.from_user.id),
+            state=state,
+        )
+        if bad_request:
+            await message.answer(BAD_OPENAI_REQUEST_MESSAGE)
             return
 
         if response is None:

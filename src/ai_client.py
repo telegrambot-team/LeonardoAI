@@ -5,6 +5,13 @@ from openai import AsyncOpenAI
 logger = logging.getLogger(__name__)
 
 
+class AssistantModelNotConfiguredError(RuntimeError):
+    default_message = "OpenAI assistant model is not configured"
+
+    def __init__(self) -> None:
+        super().__init__(self.default_message)
+
+
 class AIClient:
     def __init__(self, token: str, assistant_id: str):
         self.client = AsyncOpenAI(api_key=token)
@@ -27,7 +34,7 @@ class AIClient:
     async def get_response(self, conversation_id: str, text: str, *, user_id: str | None = None) -> str | None:
         await self._ensure_assistant_loaded()
         if not self._model:
-            raise RuntimeError("OpenAI assistant model is not configured")
+            raise AssistantModelNotConfiguredError
 
         request_params: dict[str, object] = {
             "conversation": conversation_id,
