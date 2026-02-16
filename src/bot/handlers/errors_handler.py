@@ -10,9 +10,9 @@ from contextlib import suppress
 
 from aiogram import Bot, Dispatcher, Router, html
 from aiogram.exceptions import TelegramAPIError, TelegramBadRequest
-from redis.exceptions import ConnectionError as RedisConnectionError, RedisError, TimeoutError as RedisTimeoutError
-
-from config import Settings
+from redis.exceptions import ConnectionError as RedisConnectionError
+from redis.exceptions import RedisError
+from redis.exceptions import TimeoutError as RedisTimeoutError
 
 logger = logging.getLogger(__name__)
 
@@ -52,9 +52,7 @@ async def _try_reconnect_redis(dispatcher: Dispatcher | None) -> bool:
 
 
 @router.errors()
-async def error_handler(
-    error_event: ErrorEvent, bot: Bot, settings: Settings, dispatcher: Dispatcher | None = None
-) -> None:
+async def error_handler(error_event: ErrorEvent, bot: Bot, settings, dispatcher: Dispatcher | None = None) -> None:
     exception = error_event.exception
 
     if isinstance(exception, TelegramBadRequest):
