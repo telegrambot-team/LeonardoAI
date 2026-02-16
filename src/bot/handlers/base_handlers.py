@@ -74,9 +74,7 @@ async def main_menu_handler(callback: CallbackQuery, callback_data: MainMenuOpti
         case MainMenuBtns.BEFORE_SURGERY:
             await state.set_state(StatesBot.IN_AI_DIALOG)
             await safe_edit_text(
-                callback.message,
-                "Рекомендации перед и после операции",
-                reply_markup=before_surgery_kbd,
+                callback.message, "Рекомендации перед и после операции", reply_markup=before_surgery_kbd
             )
         case MainMenuBtns.SCHEDULE_CONSULTATION:
             await state.set_state(StatesBot.IN_AI_DIALOG)
