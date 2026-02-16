@@ -18,10 +18,16 @@ classifiers = [
 dependencies = [
     'aiogram>=3.11.0',
     'pydantic-settings>=2.2.1',
-    'openai>=1.52.2',
+    'openai>=2.21.0',
     'redis[hiredis]>=5.2.0',
 ]
-requires-python = ">=3.11"
+requires-python = ">=3.13"
+
+
+[dependency-groups]
+dev = [
+    'ruff>=0.15.1',
+]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -33,7 +39,7 @@ bot-run = "main:run_main"
 
 [tool.black]
 line-length = 119
-target-version = ['py311']
+target-version = ['py313']
 skip-string-normalization = true
 
 [tool.pytest.ini_options]
@@ -45,7 +51,7 @@ filterwarnings = [
 
 [tool.ruff]  # https://github.com/charliermarsh/ruff
 line-length = 119
-target-version = "py311"
+target-version = "py313"
 
 [tool.ruff.lint]
 select = ["ALL"]
