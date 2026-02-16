@@ -4,7 +4,6 @@ from asyncio import sleep
 from contextlib import suppress
 from urllib.parse import urlencode
 
-import aiogram.utils.formatting
 import openai
 
 from aiogram import Router
@@ -142,14 +141,14 @@ async def ai_menu_handler(
 
     data = await state.get_data()
 
-    if "ai_thread_id" in data:
+    if conversation_id := data.get("ai_conversation_id"):
         try:
-            await ai_client.delete_thread(data["ai_thread_id"])
+            await ai_client.delete_conversation(conversation_id)
         except openai.NotFoundError:
-            logger.warning("Thread %s not found", data["ai_thread_id"])
+            logger.warning("Conversation %s not found", conversation_id)
 
-    new_thread_id = await ai_client.new_thread()
-    await state.update_data(ai_thread_id=new_thread_id)
+    new_conversation_id = await ai_client.new_conversation()
+    await state.update_data(ai_conversation_id=new_conversation_id, ai_thread_id=None)
     await callback.message.answer("Чем я могу помочь?")
 
 
@@ -172,10 +171,13 @@ async def moderator_menu_handler(
 async def ai_leonardo_handler(message: Message, ai_client: AIClient, settings, state: FSMContext):
     logger.info("Processing user message %s from %s", message.message_id, message.from_user.id)
     data = await state.get_data()
-    new_thread_id = data.get("ai_thread_id", None)
-    if new_thread_id is None:
-        new_thread_id = await ai_client.new_thread()
-        await state.update_data(ai_thread_id=new_thread_id)
+    conversation_id = data.get("ai_conversation_id")
+    if not conversation_id:
+        conversation_id = await ai_client.new_conversation()
+        await state.update_data(ai_conversation_id=conversation_id, ai_thread_id=None)
+    if not message.text:
+        await message.answer("Пожалуйста, отправьте текстовый вопрос.")
+        return
     forwarded = await message.forward(settings.CHAT_LOG_ID)
     messages_to_handle = forwarded if isinstance(forwarded, list) else [forwarded]
     global_ctx = get_global_context(message.bot, state.storage)
@@ -186,11 +188,12 @@ async def ai_leonardo_handler(message: Message, ai_client: AIClient, settings, s
     await global_ctx.update_data(log_user_message_map=log_user_message_map)
     async with ChatActionSender.typing(bot=message.bot, chat_id=message.chat.id):
         try:
-            response = await ai_client.get_response(new_thread_id, message.text)
+            response = await ai_client.get_response(conversation_id, message.text, user_id=str(message.from_user.id))
         except openai.NotFoundError:
-            logger.warning("Thread %s not found", data["ai_thread_id"])
-            response = None
-            await state.update_data(ai_thread_id=None)
+            logger.warning("Conversation %s not found", conversation_id)
+            conversation_id = await ai_client.new_conversation()
+            await state.update_data(ai_conversation_id=conversation_id, ai_thread_id=None)
+            response = await ai_client.get_response(conversation_id, message.text, user_id=str(message.from_user.id))
 
         if response is None:
             await message.answer("Извините, я отвлекся, давайте начнём новый разговор 🙈")
