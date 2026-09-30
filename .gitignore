@@ -30,3 +30,8 @@ venv.bak/
 *$py.class
 *.so
 *.db
+
+# SQLite database and initial prompt
+db/
+/prompt.md
+.uv-cache/
