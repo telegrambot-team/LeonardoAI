@@ -1,10 +1,11 @@
-from enum import IntEnum, auto
+from enum import IntEnum, StrEnum, auto
 
 from aiogram.fsm.state import State, StatesGroup
 
 
-class StatesBot(StatesGroup):
-    IN_AI_DIALOG = State()
+class SettingsStates(StatesGroup):
+    WAITING_PROMPT = State()
+    WAITING_MODEL = State()
 
 
 class SurgeryMenuBtns(IntEnum):
@@ -21,16 +22,21 @@ class AfterSurgeryMenuBtns(IntEnum):
     BACK = auto()
 
 
-class AIMenuBtns(IntEnum):
-    NEW_DIALOG = auto()
-    BACK = auto()
-
-
 class MainMenuBtns(IntEnum):
-    MODELLING = auto()
-    BEFORE_SURGERY = auto()
-    SCHEDULE_CONSULTATION = auto()
+    # explicit value keeps buttons in already sent messages working
+    SCHEDULE_CONSULTATION = 3
 
 
-class ModeratorMenuBtns(IntEnum):
-    CLEAR_CONTEXTS = auto()
+class SettingsAction(StrEnum):
+    MAIN = "main"
+    PROMPT = "prompt"
+    PROMPT_DOWNLOAD = "prompt_dl"
+    PROMPT_UPLOAD = "prompt_ul"
+    MODEL = "model"
+    EFFORT = "effort"
+    SET_EFFORT = "set_effort"
+    VERBOSITY = "verbosity"
+    SET_VERBOSITY = "set_verb"
+    CLEAR = "clear"
+    CLEAR_CONFIRM = "clear_ok"
+    CLOSE = "close"

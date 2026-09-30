@@ -16,17 +16,22 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    'aiogram>=3.11.0',
-    'pydantic-settings>=2.2.1',
-    'openai>=2.21.0',
-    'redis[hiredis]>=5.2.0',
+    'aiogram>=3.31.0',
+    'aiosqlite>=0.22.1',
+    'openai>=3.21.0',
+    'pydantic-settings>=2.15.0',
+    'redis[hiredis]>=8.1.0',
+    'sqlalchemy[asyncio]>=2.1.1',
 ]
 requires-python = ">=3.13"
 
 
 [dependency-groups]
 dev = [
-    'ruff>=0.15.1',
+    'pytest>=9.1.1',
+    'pytest-asyncio>=1.4.0',
+    'pytest-cov>=7.1.0',
+    'ruff>=0.16.9',
 ]
 
 [tool.setuptools]
@@ -37,13 +42,10 @@ py-modules = ["ai_client", "config", "main"]
 [project.scripts]
 bot-run = "main:run_main"
 
-[tool.black]
-line-length = 119
-target-version = ['py313']
-skip-string-normalization = true
-
 [tool.pytest.ini_options]
 testpaths = "tests"
+pythonpath = ["src"]
+asyncio_mode = "auto"
 filterwarnings = [
     "ignore::DeprecationWarning",
 ]
@@ -66,6 +68,7 @@ ignore = [
   "INP001", # part of an implicit namespace package. Add an `__init__.py`
   "PLR0911", # Too many return statements
   "RUF001",  # Ambiguous unicode character
+  "CPY", # flake8-copyright
 ]
 unfixable = [
   "F", # pyflakes
@@ -87,25 +90,23 @@ allowed-confusables = [
   "S105", # Possible hardcoded password
   "S106", # Possible hardcoded password
   "PLR2004", # Magic value used in comparison
+  "ARG002", # Unused method argument (fakes mirror real signatures)
 ]
-"src/ass.py" = ["ALL"]
 
 [tool.ruff.lint.flake8-tidy-imports]  # https://docs.astral.sh/ruff/settings/#lintflake8-tidy-imports
 ban-relative-imports = "all"
 
 [tool.ruff.lint.flake8-boolean-trap]  # https://docs.astral.sh/ruff/settings/#lintflake8-bugbear
-extend-allowed-calls = ["pydantic.Field", "django.db.models.Value"]
+extend-allowed-calls = ["pydantic.Field", "sqlalchemy.orm.mapped_column"]
 
 [tool.ruff.lint.flake8-builtins]
 builtins-ignorelist = ["id"]
-
-[tool.ruff.lint.flake8-bugbear]  # https://docs.astral.sh/ruff/settings/#lintflake8-bugbear
-extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path", "fastapi.Body", "fastapi_filter.FilterDepends"]
 
 [tool.ruff.lint.flake8-type-checking]
 exempt-modules = ["typing", "typing_extensions"]
 
 [tool.ruff.lint.isort]  # https://docs.astral.sh/ruff/settings/#isort
+known-first-party = ["ai_client", "bot", "config", "db", "main", "schemas", "services", "tests"]
 section-order = ["future", "typing", "standard-library", "third-party", "first-party", "local-folder"]
 lines-between-types = 1
 split-on-trailing-comma = false
