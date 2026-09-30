@@ -32,6 +32,6 @@ venv.bak/
 *.db
 
 # SQLite database and initial prompt
-db/
+/db/
 /prompt.md
 .uv-cache/

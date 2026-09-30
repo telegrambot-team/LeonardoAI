@@ -106,6 +106,7 @@ builtins-ignorelist = ["id"]
 exempt-modules = ["typing", "typing_extensions"]
 
 [tool.ruff.lint.isort]  # https://docs.astral.sh/ruff/settings/#isort
+known-first-party = ["ai_client", "bot", "config", "db", "main", "schemas", "services", "tests"]
 section-order = ["future", "typing", "standard-library", "third-party", "first-party", "local-folder"]
 lines-between-types = 1
 split-on-trailing-comma = false
