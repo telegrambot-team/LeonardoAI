@@ -25,3 +25,25 @@ def test_clean():
 
 Доктор не проводит операции мужчинам, повторные маммопластики и вторичные ринопластики."""
     assert clean(src_text) == expected_text
+
+
+def test_clean_new_citation_markers():
+    src_text = (
+        "В стоимость входит коррекция перегородки без дополнительной оплаты "
+        "fileciteturn8file0turn8file2.\n\n"
+        "Доктор оценит, подходит ли она в вашем случае fileciteturn8file1. Далее"
+    )
+    assert clean(src_text) == (
+        "В стоимость входит коррекция перегородки без дополнительной оплаты.\n\n"
+        "Доктор оценит, подходит ли она в вашем случае. Далее"
+    )
+
+
+def test_clean_unclosed_citation_and_stray_private_use_chars():
+    assert clean("Ответ fileciteturn8file0\nВторая строка") == "Ответ\nВторая строка"
+    assert clean("Цена 680 000 ₽ 👍") == "Цена 680 000 ₽ 👍"
+
+
+def test_clean_keeps_regular_text():
+    text = "Ринопластика — 680 000 рублей.\n\n**Важно:** консультация [бесплатна]."
+    assert clean(text) == text

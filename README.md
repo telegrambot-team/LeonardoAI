@@ -23,27 +23,30 @@ Checks: `uv run ruff format src tests && uv run ruff check src tests && uv run p
 
 ### Deploy
 
-The bot runs on the server as a plain process inside tmux.
+The bot runs on the server as a plain process inside [herdr](https://herdr.dev) (session `default`, pane `bot-run`).
+
+Regular update:
 
 ```bash
-# 1. Only for the first deploy of this version: upload the initial prompt
+ssh contabo
+herdr                  # attach, switch to the LeonardoAI workspace with the bot-run pane
+# Ctrl+C to stop the bot, then:
+git pull
+uv sync
+uv run bot-run
+# detach from herdr, the bot keeps running
+```
+
+First deploy of the app-side settings version (only once):
+
+```bash
+# upload the initial prompt
 scp Promt_v4.md contabo:~/projects/LeonardoAI/prompt.md
 
-# 2. On the server
-ssh contabo
-cd ~/projects/LeonardoAI
-# only for the first deploy of this version: add the knowledge base and the initial prompt
+# add the knowledge base and the initial prompt to .env
 echo "VECTOR_STORE_IDS=<vector store id>" >> .env
 echo "INITIAL_PROMPT_PATH=prompt.md" >> .env
 uv self update   # the lock file needs a recent uv
-git pull
-uv sync
-
-# 3. Restart the bot in tmux
-tmux attach -t doctor     # then Ctrl+b 2 — the bot window
-# Ctrl+C to stop the running bot, then:
-uv run bot-run
-# Ctrl+b d — detach, the bot keeps running
 ```
 
 On the first start the bot creates `db/bot.db`, fills the settings from `.env` and `prompt.md`, and copies
